@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FPG Live Leaderboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f3f3;
+      padding: 1rem;
+    }
+    .leaderboard-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #3c763d 0%, #2d5a2e 100%);
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .header h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+    .header .tagline { color: #e6b800; font-size: 0.9rem; }
+    .refresh-bar {
+      background: #d1ecf1;
+      padding: 0.75rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: #0c5460;
+      border-bottom: 1px solid #bee5eb;
+    }
+    .content { padding: 1.5rem; }
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      border-left: 4px solid #3c763d;
+      transition: transform 0.2s;
+    }
+    .leaderboard-item:hover { transform: translateX(4px); }
+    .leaderboard-item.first { border-left-color: #FFD700; background: #fffbe6; }
+    .leaderboard-item.second { border-left-color: #C0C0C0; }
+    .leaderboard-item.third { border-left-color: #CD7F32; }
+    .leaderboard-rank { font-size: 1.75rem; font-weight: bold; color: #3c763d; min-width: 60px; text-align: center; }
+    .leaderboard-info { flex: 1; padding: 0 1rem; }
+    .leaderboard-name { font-weight: bold; font-size: 1.125rem; color: #2d5a2e; margin-bottom: 0.25rem; }
+    .leaderboard-details { font-size: 0.8rem; color: #6c757d; display: flex; gap: 1rem; flex-wrap: wrap; }
+    .detail-badge { background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600; }
+    .detail-badge.verified { background: #d4edda; color: #2d5a2e; }
+    .leaderboard-score { text-align: right; min-width: 80px; }
+    .leaderboard-points { font-size: 1.75rem; font-weight: bold; color: #3c763d; line-height: 1; }
+    .leaderboard-strokes { font-size: 0.75rem; color: #6c757d; margin-top: 0.25rem; }
+    .loading, .empty-state { text-align: center; padding: 3rem; color: #6c757d; }
+    .footer { background: #f8f9fa; padding: 1rem 1.5rem; text-align: center; font-size: 0.8rem; color: #6c757d; border-top: 1px solid #dee2e6; }
+    @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
+    .loading-spinner { width:40px; height:40px; border:4px solid #f3f3f3; border-top:4px solid #3c763d; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:1rem; }
+  </style>
+</head>
+<body>
+  <div class="leaderboard-container">
+    <div class="header">
+      <div style="font-size:3rem;">⛳</div>
+      <h1>🏆 Live Tournament Leaderboard</h1>
+      <p class="tagline">Florida Players Group • Good Golf • Good Friends • Good Times</p>
+    </div>
+
+    <div class="refresh-bar">🔄 <span id="last-update">Loading...</span> • Auto-refreshes every 30 seconds</div>
+    <div class="content" id="leaderboard-content">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <div>Loading live scores...</div>
+      </div>
+    </div>
+    <div class="footer">
+      Powered by Florida Players Group • <span id="round-date"></span>
+    </div>
+  </div>
+
+  <script>
+    // ==================== CONFIG ====================
+    const GOOGLE_SHEET_ID = '152dK2m3gluxCdBal9GGLs43aDKFBvy5BiHdnKL3gV4o';
+    const SHEET_NAME = 'Live Scores';
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
+
+    const ROUND_DATE = new Date().toISOString().split('T')[0];
+
+    async function loadLeaderboard() {
+      try {
+        const response = await fetch(SHEET_URL);
+        const text = await response.text();
+
+        // Parse the Google Sheets JSON response
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        const rows = json.table.rows;
+        if (!rows || rows.length === 0) return showEmptyState();
+
+        const playerData = {};
+        rows.forEach(row => {
+          const c = row.c;
+          if (!c || !c[3] || !c[3].v) return;
+          const roundDate = c[1]?.v || '';
+          const player = c[3]?.v || '';
+          if (roundDate !== ROUND_DATE) return;
+
+          const group = c[2]?.v || '';
+          const hole = c[4]?.v || 0;
+          const score = c[5]?.v || 0;
+          const stableford = c[6]?.v || 0;
+          const verified = c[8]?.v || 'Pending';
+          const scorekeeper = c[7]?.v || '';
+
+          if (!playerData[player]) {
+            playerData[player] = { name: player, group, totalStableford: 0, totalStrokes: 0, holesPlayed: new Set(), verifiedHoles: 0 };
+          }
+          const key = `${hole}-${scorekeeper}`;
+          if (!playerData[player].holesPlayed.has(key)) {
+            playerData[player].totalStableford += stableford;
+            playerData[player].totalStrokes += score;
+            playerData[player].holesPlayed.add(key);
+            if (verified === 'Yes') playerData[player].verifiedHoles++;
+          }
+        });
+
+        const players = Object.values(playerData).map(p => ({
+          ...p,
+          holesPlayedCount: Math.floor(p.holesPlayed.size / 2)
+        }));
+
+        players.sort((a, b) => b.totalStableford - a.totalStableford || a.totalStrokes - b.totalStrokes);
+        renderLeaderboard(players);
+        updateTimestamp();
+      } catch (err) {
+        console.error(err);
+        showError();
+      }
+    }
+
+    function renderLeaderboard(players) {
+      const content = document.getElementById('leaderboard-content');
+      if (players.length === 0) return showEmptyState();
+      let html = '';
+      players.forEach((p, i) => {
+        const rank = i + 1;
+        const rankClass = rank === 1 ? 'first' : rank === 2 ? 'second' : rank === 3 ? 'third' : '';
+        html += `
+          <div class="leaderboard-item ${rankClass}">
+            <div class="leaderboard-rank ${rankClass}">${rank}</div>
+            <div class="leaderboard-info">
+              <div class="leaderboard-name">${p.name}</div>
+              <div class="leaderboard-details">
+                <span class="detail-badge">${p.group}</span>
+                <span class="detail-badge">Through ${p.holesPlayedCount} holes</span>
+                <span class="detail-badge verified">${p.verifiedHoles} verified</span>
+              </div>
+            </div>
+            <div class="leaderboard-score">
+              <div class="leaderboard-points">${p.totalStableford}</div>
+              <div class="leaderboard-strokes">${p.totalStrokes} strokes</div>
+            </div>
+          </div>`;
+      });
+      content.innerHTML = html;
+    }
+
+    function showEmptyState() {
+      document.getElementById('leaderboard-content').innerHTML = `
+        <div class="empty-state">
+          <div style="font-size:4rem;">⛳</div>
+          <div style="font-weight:bold;font-size:1.25rem;margin-bottom:0.5rem;">No scores yet</div>
+          <div>Scorekeepers will submit scores as they play.<br>The leaderboard will update automatically.</div>
+        </div>`;
+    }
+
+    function showError() {
+      document.getElementById('leaderboard-content').innerHTML = `
+        <div class="empty-state">
+          <div style="font-size:4rem;">⚠️</div>
+          <div style="font-weight:bold;font-size:1.25rem;margin-bottom:0.5rem;color:#856404;">Unable to load scores</div>
+          <div>Make sure your Google Sheet is <strong>published to the web</strong> under File → Share → Publish to Web.<br>This page will retry automatically.</div>
+        </div>`;
+    }
+
+    function updateTimestamp() {
+      const now = new Date();
+      document.getElementById('last-update').textContent = `Updated at ${now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true})}`;
+    }
+
+    document.getElementById('round-date').textContent = new Date().toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    loadLeaderboard();
+    setInterval(loadLeaderboard, 30000);
+  </script>
+</body>
+</html>
