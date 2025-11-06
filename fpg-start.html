@@ -60,7 +60,8 @@
   </div>
 
   <script>
-    const BIN_ID = "68f6557dae596e708f1f69d1";
+    // Try fetching WITHOUT /latest - get current version directly
+    const BIN_URL = "https://api.jsonbin.io/v3/b/68f6557dae596e708f1f69d1";
     
     let courses = [];
     let selectedCourse = null;
@@ -69,37 +70,58 @@
 
     async function loadCourses() {
       try {
-        // Force fresh data - no cache
+        // Add cache buster
         const timestamp = new Date().getTime();
-        const url = `https://api.jsonbin.io/v3/b/${BIN_ID}?timestamp=${timestamp}`;
+        const url = `${BIN_URL}?nocache=${timestamp}`;
+        
+        console.log('Fetching from:', url);
         
         const res = await fetch(url, {
           method: 'GET',
           headers: {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
+            'Pragma': 'no-cache'
           }
         });
         
-        const data = await res.json();
-        let coursesArray = data.record;
-        
-        // Unwrap nested arrays
-        while (Array.isArray(coursesArray) && coursesArray.length === 1 && Array.isArray(coursesArray[0])) {
-          coursesArray = coursesArray[0];
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }
         
-        if (Array.isArray(coursesArray) && coursesArray.length === 1 && !coursesArray[0].course_name) {
-          coursesArray = coursesArray[0];
+        const data = await res.json();
+        console.log('Raw API response:', data);
+        
+        let coursesArray = data.record;
+        console.log('Initial record:', Array.isArray(coursesArray) ? `Array(${coursesArray.length})` : typeof coursesArray);
+        
+        // Unwrap nested arrays
+        let iterations = 0;
+        while (iterations < 10 && Array.isArray(coursesArray)) {
+          iterations++;
+          console.log(`Unwrap iteration ${iterations}:`, Array.isArray(coursesArray[0]) ? `Nested array` : `${coursesArray.length} items`);
+          
+          // If we found course objects, stop
+          if (coursesArray.length > 0 && coursesArray[0]?.course_name) {
+            console.log('Found courses!');
+            break;
+          }
+          
+          // If single element array, unwrap
+          if (coursesArray.length === 1) {
+            coursesArray = coursesArray[0];
+          } else {
+            break;
+          }
         }
 
         courses = Array.isArray(coursesArray) ? coursesArray : [coursesArray];
         
+        console.log('=== FINAL RESULT ===');
         console.log('Total courses loaded:', courses.length);
         if (courses.length > 0) {
-          console.log('First:', courses[0]?.course_name);
-          console.log('Last:', courses[courses.length - 1]?.course_name);
+          console.log('First course:', courses[0]?.course_name);
+          console.log('Last course:', courses[courses.length - 1]?.course_name);
+          console.log('All course names:', courses.map(c => c.course_name).join(', '));
         }
 
         const courseSelect = document.getElementById("course-select");
@@ -119,8 +141,8 @@
         });
         
       } catch (err) {
-        console.error("Error:", err);
-        document.getElementById("course-select").innerHTML = '<option value="">Error loading courses</option>';
+        console.error("ERROR:", err);
+        document.getElementById("course-select").innerHTML = `<option value="">Error: ${err.message}</option>`;
       }
     }
 
