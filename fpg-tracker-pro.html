@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>FPG Scorekeeper Pro</title>
+  <style>
+    :root{
+      --fpg-green:#3c763d;
+      --fpg-green-dark:#2d5a2e;
+      --fpg-gold:#e6b800;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --bg:#f8f9fa;
+      --card:#ffffff;
+      --line:#e5e7eb;
+      --success:#10b981;
+      --warning:#f59e0b;
+      --error:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{
+      max-width:480px;
+      margin:0 auto;
+      min-height:100vh;
+      background:var(--card);
+      display:flex;
+      flex-direction:column;
+    }
+    
+    /* Header */
+    .header{
+      background:linear-gradient(135deg,var(--fpg-green) 0%,var(--fpg-green-dark) 100%);
+      color:#fff;
+      padding:16px 16px 8px;
+      position:sticky; 
+      top:0; 
+      z-index:10;
+      box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    }
+    .logo{
+      width:84px; 
+      height:84px; 
+      margin:4px auto 8px; 
+      display:flex; 
+      align-items:center; 
+      justify-content:center;
+      border-radius:12px; 
+      background:rgba(255,255,255,0.06);
+    }
+    .logo img{max-width:100%; max-height:100%; object-fit:contain}
+    .hdr-title{margin:0; font-weight:800; font-size:20px; text-align:center}
+    .hdr-tag{margin:4px 0 0; text-align:center; color:var(--fpg-gold); font-weight:600; font-size:12px}
+    .hdr-meta{
+      margin-top:10px; 
+      display:flex; 
+      justify-content:space-between; 
+      align-items:center; 
+      gap:8px; 
+      font-size:12px
+    }
+    .pill{
+      background:rgba(255,255,255,0.12); 
+      border:1px solid rgba(255,255,255,0.2); 
+      padding:6px 10px; 
+      border-radius:999px;
+      font-size:11px;
+    }
+    .sync-status {
+      display:flex;
+      align-items:center;
+      gap:4px;
+      font-size:11px;
+      padding:4px 8px;
+      background:rgba(255,255,255,0.12);
+      border-radius:999px;
+    }
+    .sync-dot {
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:#10b981;
+      animation:pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity:1; }
+      50% { opacity:0.5; }
+    }
+    
+    /* Tabs */
+    .tabs{
+      display:flex; 
+      border-bottom:1px solid var(--line);
+      background:var(--card);
+      position:sticky;
+      top:140px;
+      z-index:9;
+    }
+    .tab{
+      flex:1; 
+      text-align:center; 
+      padding:10px 6px; 
+      font-weight:700; 
+      font-size:13px; 
+      color:var(--muted); 
+      background:#fff; 
+      border:none; 
+      cursor:pointer;
+      transition:all 0.2s;
+    }
+    .tab.active{
+      color:var(--fpg-green); 
+      background:#d4edda;
+    }
+    .content{padding:14px}
+    .view{display:none; animation:.18s ease-out fade}
+    .view.active{display:block}
+    @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+    
+    /* Course header */
+    .course-head{
+      background:linear-gradient(135deg,var(--fpg-green) 0%,var(--fpg-green-dark) 100%);
+      color:#fff; 
+      border-radius:12px; 
+      padding:12px; 
+      margin-bottom:12px;
+      box-shadow:0 4px 12px rgba(60,118,61,0.2);
+    }
+    .course-row{
+      display:flex; 
+      justify-content:space-between; 
+      align-items:center; 
+      gap:10px
+    }
+    .hole-grid{
+      display:grid; 
+      grid-template-columns:repeat(3,1fr); 
+      gap:8px; 
+      margin-top:8px; 
+      font-size:12px
+    }
+    .hg-cell{
+      text-align:center; 
+      background:rgba(255,255,255,0.08); 
+      border:1px solid rgba(255,255,255,0.18); 
+      border-radius:8px; 
+      padding:8px;
+    }
+    .hg-title{opacity:.85; font-size:11px; margin-bottom:2px;}
+    .hg-val{font-weight:800; font-size:16px}
+    
+    .nav-row{
+      display:grid; 
+      grid-template-columns:1fr 1fr; 
+      gap:8px; 
+      margin:12px 0 6px
+    }
+    .btn{
+      padding:10px; 
+      border-radius:10px; 
+      border:2px solid var(--fpg-green); 
+      font-weight:800; 
+      cursor:pointer; 
+      background:#fff; 
+      color:var(--fpg-green);
+      transition:all 0.2s;
+      font-size:14px;
+    }
+    .btn:hover{
+      background:var(--fpg-green);
+      color:#fff;
+      transform:translateY(-1px);
+    }
+    .btn.primary{
+      background:var(--fpg-green); 
+      color:#fff
+    }
+    .btn.primary:hover{
+      background:var(--fpg-green-dark);
+    }
+    .btn:disabled{
+      opacity:.5; 
+      cursor:not-allowed;
+      transform:none;
+    }
+    
+    /* Players grid */
+    .players{
+      display:grid; 
+      grid-template-columns:1fr 1fr; 
+      gap:10px
+    }
+    .player{
+      border:2px solid var(--line); 
+      border-radius:12px; 
+      padding:10px; 
+      background:#fff;
+      transition:all 0.2s;
+    }
+    .player:hover{
+      border-color:var(--fpg-green);
+      box-shadow:0 2px 8px rgba(60,118,61,0.1);
+    }
+    .p-top{
+      display:flex; 
+      align-items:center; 
+      gap:8px; 
+      margin-bottom:8px
+    }
+    .avatar{
+      width:34px; 
+      height:34px; 
+      border-radius:50%; 
+      background:var(--fpg-green); 
+      color:#fff; 
+      display:flex; 
+      align-items:center; 
+      justify-content:center; 
+      font-weight:800;
+      font-size:14px;
+    }
+    .p-name{
+      font-weight:800; 
+      font-size:14px; 
+      display:flex; 
+      align-items:center; 
+      gap:6px
+    }
+    .stroke-dot{
+      display:inline-block; 
+      width:8px; 
+      height:8px; 
+      border-radius:50%; 
+      background:var(--fpg-green)
+    }
+    .subline{
+      font-size:11px; 
+      color:var(--muted); 
+      margin-top:2px; 
+      display:flex; 
+      gap:10px; 
+      align-items:center
+    }
+    .quota{display:flex; align-items:center; gap:4px}
+    .check{
+      font-size:12px; 
+      color:var(--fpg-green); 
+      display:none
+    }
+    .check.on{display:inline}
+    
+    /* Score buttons */
+    .score-row{
+      display:grid; 
+      grid-template-columns:repeat(5,1fr); 
+      gap:6px
+    }
+    .score-btn{
+      border:1px solid var(--line); 
+      border-radius:8px; 
+      padding:10px 0; 
+      background:#f3f4f6; 
+      font-weight:800; 
+      color:#374151; 
+      cursor:pointer; 
+      text-align:center;
+      transition:all 0.15s;
+      position:relative;
+    }
+    .score-btn:hover{
+      background:#e5e7eb;
+      transform:scale(1.05);
+    }
+    .score-btn.active{
+      background:var(--fpg-green); 
+      color:#fff; 
+      border-color:var(--fpg-green);
+      box-shadow:0 2px 8px rgba(60,118,61,0.3);
+    }
+    .score-btn.synced::after{
+      content:'✓';
+      position:absolute;
+      top:2px;
+      right:4px;
+      font-size:10px;
+      color:var(--success);
+    }
+    .pts{
+      margin-top:6px; 
+      font-size:12px; 
+      font-weight:700; 
+      color:var(--fpg-green)
+    }
+    
+    /* Alerts */
+    .alert{
+      border-radius:10px; 
+      padding:10px; 
+      font-size:12px; 
+      margin:8px 0;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .alert.info{
+      background:#d1ecf1; 
+      color:#0c5460; 
+      border:1px solid #9bd5e1
+    }
+    .alert.success{
+      background:#d1fae5;
+      color:#065f46;
+      border:1px solid #a7f3d0;
+    }
+    .alert.warning{
+      background:#fff3cd;
+      color:#856404;
+      border:1px solid #ffe08a;
+    }
+    .alert.error{
+      background:#fee2e2;
+      color:#991b1b;
+      border:1px solid #fecaca;
+    }
+    
+    /* Card table */
+    .card-wrapper{
+      overflow-x:auto;
+      border-radius:8px;
+      border:1px solid var(--line);
+    }
+    table{
+      width:100%; 
+      border-collapse:collapse; 
+      font-size:12px;
+      background:#fff;
+    }
+    th,td{
+      padding:8px 6px; 
+      border-bottom:1px solid var(--line); 
+      text-align:center
+    }
+    thead th{
+      position:sticky; 
+      top:0; 
+      background:#d4edda; 
+      z-index:1;
+      font-weight:800;
+    }
+    
+    .spacer{height:20px}
+    
+    /* Toast notifications */
+    .toast{
+      position:fixed;
+      bottom:20px;
+      right:20px;
+      background:var(--fpg-green);
+      color:#fff;
+      padding:12px 20px;
+      border-radius:8px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+      z-index:1000;
+      animation:slideIn 0.3s;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    @keyframes slideIn{
+      from{transform:translateX(400px); opacity:0;}
+      to{transform:translateX(0); opacity:1;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <img src="https://raw.githubusercontent.com/tkdbrad03/fpg-scorekeeper/main/fpg-logo.png" alt="FPG Logo" />
+      </div>
+      <h1 class="hdr-title">Florida Players Group</h1>
+      <div class="hdr-tag">Good Golf • Good Friends • Good Times</div>
+      <div class="hdr-meta">
+        <div class="pill" id="meta-course">Course</div>
+        <div class="pill" id="meta-group">Group</div>
+        <div class="sync-status">
+          <span class="sync-dot"></span>
+          <span id="sync-text">Syncing...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="play">⛳ Play</button>
+      <button class="tab" data-tab="card">📋 Card</button>
+      <button class="tab" data-tab="stats">📊 Stats</button>
+    </div>
+
+    <!-- Views -->
+    <div class="content">
+      <!-- PLAY VIEW -->
+      <div id="view-play" class="view active">
+        <div class="course-head">
+          <div class="course-row">
+            <div id="course-name" style="font-weight:800">Course</div>
+            <div id="group-name" style="opacity:.9"></div>
+          </div>
+          <div class="hole-grid">
+            <div class="hg-cell">
+              <div class="hg-title">Hole</div>
+              <div class="hg-val" id="hole-num">1</div>
+            </div>
+            <div class="hg-cell">
+              <div class="hg-title">Par</div>
+              <div class="hg-val" id="hole-par">4</div>
+            </div>
+            <div class="hg-cell">
+              <div class="hg-title">HCP</div>
+              <div class="hg-val" id="hole-hcp">11</div>
+            </div>
+          </div>
+          <div class="nav-row">
+            <button class="btn" id="btn-prev">← Previous</button>
+            <button class="btn primary" id="btn-next">Next →</button>
+          </div>
+          <div id="verify-banner" style="display:none"></div>
+        </div>
+
+        <div id="alert-container"></div>
+        <div class="players" id="players-grid"></div>
+        <div class="spacer"></div>
+      </div>
+
+      <!-- CARD VIEW -->
+      <div id="view-card" class="view">
+        <div class="alert info">
+          📊 Stableford points are computed from <strong>NET</strong> score (handicap stroke applied when eligible).
+        </div>
+        <div class="card-wrapper">
+          <table id="card-table"></table>
+        </div>
+      </div>
+
+      <!-- STATS VIEW -->
+      <div id="view-stats" class="view">
+        <div class="alert info">
+          📈 Live statistics for your group
+        </div>
+        <div id="stats-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // API Configuration
+    const API_BASE_URL = '/api'; // Your serverless function base URL
+    const BIN_URL = "https://api.jsonbin.io/v3/b/68f6557dae596e708f1f69d1/latest";
+    const SHEET_ID = "152dK2m3gluxCdBal9GGLs43aDKFBvy5BiHdnKL3gV4o";
+
+    // State
+    let selectedCourse = null;
+    let selectedGroupIndex = null;
+    let isScorekeeper = false;
+    let courseHoles = [];
+    let players = [];
+    let scorekeepers = [];
+    let groupNumber = null;
+    let currentHole = 1;
+    const maxHoles = 18;
+    const scores = {};
+    let syncQueue = [];
+    let isSyncing = false;
+
+    // Initialize
+    (function bootstrap() {
+      try {
+        selectedCourse = JSON.parse(localStorage.getItem("selectedCourse"));
+        selectedGroupIndex = parseInt(localStorage.getItem("selectedGroup"), 10);
+        isScorekeeper = JSON.parse(localStorage.getItem("isScorekeeper") || "false");
+        
+        if (!selectedCourse || selectedGroupIndex === null) {
+          alert("Missing setup. Redirecting to start...");
+          location.href = "fpg-start.html";
+          return;
+        }
+      } catch (e) {
+        alert("Error loading data. Returning to start.");
+        location.href = "fpg-start.html";
+      }
+    })();
+
+    // Stableford calculation
+    function stablefordPoints(gross, par, strokeApplied) {
+      if (!gross || !par) return 0;
+      const net = gross - (strokeApplied ? 1 : 0);
+      const diff = net - par;
+      if (diff >= 2) return 0;
+      if (diff === 1) return 1;
+      if (diff === 0) return 2;
+      if (diff === -1) return 3;
+      return 4;
+    }
+
+    // Toast notifications
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `
+        <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+        <span>${message}</span>
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function showAlert(message, type = 'info') {
+      const container = document.getElementById('alert-container');
+      const alertClass = `alert-${type}`;
+      const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+      container.innerHTML = `<div class="alert ${type}">${icon} ${message}</div>`;
+      setTimeout(() => container.innerHTML = '', 5000);
+    }
+
+    // Sync to API
+    async function syncToAPI(playerName, hole, gross, stableford, strokeApplied) {
+      const roundDate = new Date().toISOString().split('T')[0];
+      const scorekeeperName = localStorage.getItem('player-name') || 'Unknown';
+      
+      const payload = {
+        roundDate,
+        group: groupNumber,
+        playerName,
+        hole,
+        score: gross,
+        stablefordPoints: stableford,
+        scorekeeper: scorekeeperName,
+        verified: 'Pending'
+      };
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/submit-score`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          updateSyncStatus('Synced', true);
+          return true;
+        } else {
+          throw new Error('API request failed');
+        }
+      } catch (error) {
+        console.error('Sync error:', error);
+        updateSyncStatus('Offline', false);
+        // Queue for later
+        syncQueue.push(payload);
+        return false;
+      }
+    }
+
+    function updateSyncStatus(text, synced) {
+      document.getElementById('sync-text').textContent = text;
+      document.querySelector('.sync-dot').style.background = synced ? '#10b981' : '#f59e0b';
+    }
+
+    // Initialize app
+    async function loadCourseMeta() {
+      document.getElementById('course-name').textContent = selectedCourse.course_name;
+      document.getElementById('meta-course').textContent = selectedCourse.course_name;
+
+      const group = selectedCourse.groups[selectedGroupIndex];
+      groupNumber = group.group_number;
+      
+      document.getElementById('group-name').textContent = `Group ${group.group_number} — ${group.tee_time}`;
+      document.getElementById('meta-group').textContent = `G${group.group_number}`;
+
+      scorekeepers = [group.scorekeeper1, group.scorekeeper2].filter(Boolean);
+
+      // Load holes
+      courseHoles = selectedCourse.course_holes || [];
+      updateHoleHeader();
+
+      // Load players
+      players = group.players.map(p => ({
+        name: p.name || p,
+        handicap: null,
+        quota: null,
+        strokesGiven: 0,
+        pointsTotal: 0,
+        quotaReached: false
+      }));
+
+      players.forEach(p => { scores[p.name] = {}; });
+      
+      // TODO: Hydrate from quota sheet
+      players.forEach(p => {
+        p.strokesGiven = 10; // Mock data
+      });
+
+      renderPlayers();
+      updateSyncStatus('Ready', true);
+    }
+
+    function updateHoleHeader() {
+      const hole = courseHoles[currentHole - 1] || {};
+      document.getElementById('hole-num').textContent = currentHole;
+      document.getElementById('hole-par').textContent = hole.par ?? '?';
+      document.getElementById('hole-hcp').textContent = hole.hcp ?? '?';
+    }
+
+    function renderPlayers() {
+      const grid = document.getElementById('players-grid');
+      grid.innerHTML = '';
+      
+      const hole = courseHoles[currentHole - 1] || {};
+      
+      players.forEach((p, i) => {
+        const initial = (p.name[0] || '').toUpperCase();
+        const strokeApplies = hole.hcp && p.strokesGiven && hole.hcp <= p.strokesGiven;
+        
+        const card = document.createElement('div');
+        card.className = 'player';
+        card.innerHTML = `
+          <div class="p-top">
+            <div class="avatar">${initial}</div>
+            <div style="flex:1">
+              <div class="p-name">
+                <span>${p.name}</span>
+                ${strokeApplies ? `<span class="stroke-dot"></span>` : ''}
+              </div>
+              <div class="subline">
+                <span>HCP: ${p.handicap ?? '—'}</span>
+                <span class="quota">Quota: ${p.quota ?? '—'}</span>
+              </div>
+            </div>
+          </div>
+          <div class="score-row" id="scores-${i}">
+            ${[1,2,3,4,5,6,7,8,9,10].map(s => {
+              const prev = scores[p.name]?.[currentHole]?.gross;
+              const active = prev === s ? 'active' : '';
+              return `<button class="score-btn ${active}" data-player="${i}" data-score="${s}">${s}</button>`;
+            }).join('')}
+          </div>
+          <div class="pts" id="pts-${i}"></div>
+        `;
+        grid.appendChild(card);
+      });
+
+      // Wire events
+      grid.querySelectorAll('.score-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const pIdx = parseInt(btn.dataset.player);
+          const gross = parseInt(btn.dataset.score);
+          await setPlayerScore(pIdx, gross);
+          
+          btn.parentElement.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          btn.classList.add('synced');
+        });
+      });
+    }
+
+    async function setPlayerScore(playerIndex, grossScore) {
+      const p = players[playerIndex];
+      const hole = courseHoles[currentHole - 1] || {};
+      const strokeApplies = hole.hcp && p.strokesGiven && hole.hcp <= p.strokesGiven;
+      const pts = stablefordPoints(grossScore, hole.par, strokeApplies);
+
+      if (!scores[p.name][currentHole]) {
+        scores[p.name][currentHole] = { gross: null, pts: 0, strokeApplied: false };
+      }
+      
+      scores[p.name][currentHole].gross = grossScore;
+      scores[p.name][currentHole].pts = pts;
+      scores[p.name][currentHole].strokeApplied = strokeApplies;
+
+      p.pointsTotal = Object.values(scores[p.name]).reduce((sum, h) => sum + (h?.pts || 0), 0);
+
+      document.getElementById(`pts-${playerIndex}`).textContent = `${pts} ${pts === 1 ? 'pt' : 'pts'}`;
+
+      // Sync to API
+      const synced = await syncToAPI(p.name, currentHole, grossScore, pts, strokeApplies);
+      if (synced) {
+        showToast(`Score saved for ${p.name}`);
+      } else {
+        showAlert('Score saved locally. Will sync when online.', 'warning');
+      }
+    }
+
+    // Navigation
+    function changeHole(delta) {
+      const next = currentHole + delta;
+      if (next < 1 || next > maxHoles) return;
+      currentHole = next;
+      updateHoleHeader();
+      renderPlayers();
+    }
+
+    document.getElementById('btn-prev').addEventListener('click', () => changeHole(-1));
+    document.getElementById('btn-next').addEventListener('click', () => changeHole(1));
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(`view-${tab}`).classList.add('active');
+      });
+    });
+
+    // Start
+    loadCourseMeta();
+  </script>
+</body>
+</html>
