@@ -209,6 +209,16 @@
 
     // Initialize
     loadCourses();
-  </script>
+  <!-- Footer -->
+<div style="text-align:center; padding:2rem 1rem; color:#6b7280; font-size:0.875rem;">
+  Powered by CompliTrst™ • <span id="footer-date"></span>
+</div>
+
+<script>
+  // Add date to footer
+  const now = new Date();
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById('footer-date').textContent = now.toLocaleDateString('en-US', options);
+</script>
 </body>
 </html>
