@@ -60,8 +60,8 @@
   </div>
 
   <script>
-    const BIN_URL = "https://api.jsonbin.io/v3/b/68f6557dae596e708f1f69d1/latest";
-
+    const BIN_ID = "68f6557dae596e708f1f69d1";
+    
     let courses = [];
     let selectedCourse = null;
     let selectedGroup = null;
@@ -69,54 +69,37 @@
 
     async function loadCourses() {
       try {
-        const cacheBuster = '?v=' + Date.now();
-        const res = await fetch(BIN_URL + cacheBuster);
+        // Force fresh data - no cache
+        const timestamp = new Date().getTime();
+        const url = `https://api.jsonbin.io/v3/b/${BIN_ID}?timestamp=${timestamp}`;
+        
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+        
         const data = await res.json();
-
-        console.log('Raw response:', data);
-
         let coursesArray = data.record;
         
-        console.log('After getting record:', coursesArray);
-        console.log('Is array?', Array.isArray(coursesArray));
-        console.log('Length:', coursesArray?.length);
-        
-        // Aggressive unwrapping - keep going until we hit actual course objects
-        let maxIterations = 10;
-        let iterations = 0;
-        
-        while (iterations < maxIterations && Array.isArray(coursesArray)) {
-          iterations++;
-          console.log('Iteration', iterations, '- Type:', typeof coursesArray[0], 'Length:', coursesArray.length);
-          
-          // If we have an array with course objects, we're done
-          if (coursesArray.length > 0 && coursesArray[0] && typeof coursesArray[0] === 'object' && coursesArray[0].course_name) {
-            console.log('Found courses array!');
-            break;
-          }
-          
-          // If single element array, unwrap it
-          if (coursesArray.length === 1) {
-            coursesArray = coursesArray[0];
-          } else {
-            // Multiple elements - assume this is the courses array
-            break;
-          }
+        // Unwrap nested arrays
+        while (Array.isArray(coursesArray) && coursesArray.length === 1 && Array.isArray(coursesArray[0])) {
+          coursesArray = coursesArray[0];
         }
-
-        // Final check - if still wrapped, try one more unwrap
-        if (Array.isArray(coursesArray) && coursesArray.length === 1 && Array.isArray(coursesArray[0])) {
+        
+        if (Array.isArray(coursesArray) && coursesArray.length === 1 && !coursesArray[0].course_name) {
           coursesArray = coursesArray[0];
         }
 
         courses = Array.isArray(coursesArray) ? coursesArray : [coursesArray];
         
-        console.log('Final courses:', courses);
-        console.log('Total courses found:', courses.length);
-        
+        console.log('Total courses loaded:', courses.length);
         if (courses.length > 0) {
-          console.log('First course:', courses[0]?.course_name);
-          console.log('Last course:', courses[courses.length - 1]?.course_name);
+          console.log('First:', courses[0]?.course_name);
+          console.log('Last:', courses[courses.length - 1]?.course_name);
         }
 
         const courseSelect = document.getElementById("course-select");
@@ -131,22 +114,19 @@
         courses.forEach((c, index) => {
           const opt = document.createElement("option");
           opt.value = index;
-          opt.textContent = c.course_name || c.name || 'Unknown Course';
+          opt.textContent = c.course_name || 'Unknown Course';
           courseSelect.appendChild(opt);
-          console.log('Added course:', opt.textContent);
         });
         
-        console.log('Course dropdown populated with', courses.length, 'courses');
       } catch (err) {
-        console.error("Error loading courses:", err);
-        document.getElementById("course-select").innerHTML = '<option value="">Error: ' + err.message + '</option>';
+        console.error("Error:", err);
+        document.getElementById("course-select").innerHTML = '<option value="">Error loading courses</option>';
       }
     }
 
     document.getElementById("course-select").addEventListener("change", function() {
       const index = this.value;
       const groupSelect = document.getElementById("group-select");
-      groupSelect.innerHTML = "";
 
       if (index === "") {
         groupSelect.innerHTML = '<option value="">Select a course first</option>';
@@ -162,7 +142,7 @@
       const groups = selectedCourse.groups || [];
 
       if (groups.length === 0) {
-        groupSelect.innerHTML = '<option value="">No groups found for this course</option>';
+        groupSelect.innerHTML = '<option value="">No groups for this course</option>';
         return;
       }
 
@@ -176,8 +156,7 @@
     });
 
     document.getElementById("group-select").addEventListener("change", function() {
-      const val = this.value;
-      selectedGroup = val !== "" ? val : null;
+      selectedGroup = this.value !== "" ? this.value : null;
     });
 
     document.getElementById("yes-scorekeeper").addEventListener("click", function() {
@@ -210,9 +189,9 @@
       window.location.href = "fpg-tracker.html";
     });
 
-    const now = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('footer-date').textContent = now.toLocaleDateString('en-US', options);
+    document.getElementById('footer-date').textContent = new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    });
 
     loadCourses();
   </script>
