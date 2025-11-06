@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPG Scorekeeper - Start Screen</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #f9fafb;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .selected {
+      background-color: #3c763d !important;
+      color: #fff !important;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen">
+
+  <!-- Logo -->
+  <div class="mb-6">
+    <img 
+      src="https://raw.githubusercontent.com/tkdbrad03/fpg-scorekeeper/main/fpg-logo.png"
+      alt="FPG Logo"
+      class="w-48 mx-auto"
+    />
+  </div>
+
+  <!-- Scorekeeper Choice -->
+  <div class="text-center mb-8">
+    <h2 class="text-xl font-bold mb-3 text-gray-800">Will you be keeping score today?</h2>
+    <div class="flex justify-center space-x-4">
+      <button id="yes-scorekeeper" class="py-2 px-5 bg-green-600 text-white rounded-md hover:bg-green-700">Yes, I'll keep score</button>
+      <button id="no-scorekeeper" class="py-2 px-5 bg-gray-400 text-white rounded-md hover:bg-gray-500">No, just playing</button>
+    </div>
+  </div>
+
+  <!-- Dropdowns -->
+  <div class="w-full max-w-md bg-white shadow-md rounded-lg p-6">
+    <label for="course-select" class="block text-gray-700 font-semibold mb-2">Choose Course</label>
+    <select id="course-select" class="w-full border border-gray-300 rounded-md p-2 mb-4">
+      <option value="">Loading courses...</option>
+    </select>
+
+    <label for="group-select" class="block text-gray-700 font-semibold mb-2">Choose Group</label>
+    <select id="group-select" class="w-full border border-gray-300 rounded-md p-2">
+      <option value="">Select a course first</option>
+    </select>
+  </div>
+
+  <!-- Continue Button -->
+  <div class="mt-6 text-center">
+    <button 
+      id="continue-btn" 
+      class="py-2 px-6 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition"
+    >
+      Continue
+    </button>
+  </div>
+
+  <script>
+    const BIN_URL = "https://api.jsonbin.io/v3/b/68f6557dae596e708f1f69d1/latest";
+
+    let courses = [];
+    let selectedCourse = null;
+    let selectedGroup = null;
+    let isScorekeeper = false;
+
+    // ==============================
+    // Load Courses from JSONBin
+    // ==============================
+    async function loadCourses() {
+      try {
+        const res = await fetch(BIN_URL);
+        const data = await res.json();
+
+        console.log("Raw data:", data); // Debug
+
+        // Handle deeply nested JSONBin structure
+        // Your data is wrapped in: record -> [[[[[array]]]]]
+        let unwrapped = data.record || data;
+        
+        // Unwrap multiple array layers
+        while (Array.isArray(unwrapped) && unwrapped.length === 1) {
+          unwrapped = unwrapped[0];
+        }
+        
+        // If still wrapped in array, get first element
+        if (Array.isArray(unwrapped) && unwrapped.length > 0 && Array.isArray(unwrapped[0])) {
+          // Keep unwrapping
+          while (Array.isArray(unwrapped[0])) {
+            unwrapped = unwrapped[0];
+          }
+        }
+
+        courses = Array.isArray(unwrapped) ? unwrapped : [unwrapped];
+        
+        console.log("Unwrapped courses:", courses); // Debug
+
+        const courseSelect = document.getElementById("course-select");
+        
+        if (courses.length === 0) {
+          courseSelect.innerHTML = '<option value="">No courses found</option>';
+          return;
+        }
+
+        courseSelect.innerHTML = '<option value="">Select a course</option>';
+
+        courses.forEach((c, index) => {
+          const opt = document.createElement("option");
+          opt.value = index;
+          opt.textContent = c.course_name;
+          courseSelect.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("Error loading courses:", err);
+        document.getElementById("course-select").innerHTML = '<option value="">Error loading courses</option>';
+      }
+    }
+
+    // ==============================
+    // When a Course is Selected
+    // ==============================
+    document.getElementById("course-select").addEventListener("change", function() {
+      const index = this.value;
+      const groupSelect = document.getElementById("group-select");
+      groupSelect.innerHTML = "";
+
+      if (index === "") {
+        groupSelect.innerHTML = '<option value="">Select a course first</option>';
+        return;
+      }
+
+      selectedCourse = courses[index];
+      
+      // Normalize the course structure
+      // Your data uses "holes" but code expects "course_holes"
+      if (selectedCourse.holes && !selectedCourse.course_holes) {
+        selectedCourse.course_holes = selectedCourse.holes;
+      }
+      
+      const groups = selectedCourse.groups || [];
+
+      if (groups.length === 0) {
+        groupSelect.innerHTML = '<option value="">No groups found for this course</option>';
+        return;
+      }
+
+      groupSelect.innerHTML = '<option value="">Select a group</option>';
+      groups.forEach((g, i) => {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `Group ${g.group_number} - ${g.tee_time}`;
+        groupSelect.appendChild(opt);
+      });
+    });
+
+    // ==============================
+    // Group Selection
+    // ==============================
+    document.getElementById("group-select").addEventListener("change", function() {
+      const val = this.value;
+      selectedGroup = val !== "" ? val : null;
+    });
+
+    // ==============================
+    // Scorekeeper Toggle Buttons
+    // ==============================
+    document.getElementById("yes-scorekeeper").addEventListener("click", function() {
+      isScorekeeper = true;
+      this.classList.add("selected");
+      document.getElementById("no-scorekeeper").classList.remove("selected");
+    });
+
+    document.getElementById("no-scorekeeper").addEventListener("click", function() {
+      isScorekeeper = false;
+      this.classList.add("selected");
+      document.getElementById("yes-scorekeeper").classList.remove("selected");
+    });
+
+    // ==============================
+    // Continue Button
+    // ==============================
+    document.getElementById("continue-btn").addEventListener("click", function() {
+      if (!selectedCourse) {
+        alert("Please select a course before continuing.");
+        return;
+      }
+
+      if (selectedGroup === null) {
+        alert("Please select your group before continuing.");
+        return;
+      }
+
+      if (isScorekeeper === false && isScorekeeper !== true) {
+        alert("Please choose whether you'll be keeping score.");
+        return;
+      }
+
+      // Save user selection in localStorage for use in scorekeeping screen
+      localStorage.setItem("selectedCourse", JSON.stringify(selectedCourse));
+      localStorage.setItem("selectedGroup", selectedGroup);
+      localStorage.setItem("isScorekeeper", isScorekeeper);
+
+      // Redirect to scorekeeping page
+      window.location.href = "fpg-tracker.html";
+    });
+
+    // Initialize
+    loadCourses();
+  </script>
+</body>
+</html>
