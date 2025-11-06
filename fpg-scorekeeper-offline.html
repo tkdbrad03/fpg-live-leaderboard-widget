@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>FPG Scorekeeper - Offline Mode</title>
+  <style>
+    :root{
+      --fpg-green:#3c763d;
+      --fpg-green-dark:#2d5a2e;
+      --fpg-gold:#e6b800;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --bg:#f8f9fa;
+      --card:#ffffff;
+      --line:#e5e7eb;
+      --success:#10b981;
+      --warning:#f59e0b;
+      --error:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{
+      max-width:480px;
+      margin:0 auto;
+      min-height:100vh;
+      background:var(--card);
+      display:flex;
+      flex-direction:column;
+    }
+    
+    /* Header */
+    .header{
+      background:linear-gradient(135deg,var(--fpg-green) 0%,var(--fpg-green-dark) 100%);
+      color:#fff;
+      padding:16px 16px 8px;
+      position:sticky; 
+      top:0; 
+      z-index:10;
+      box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    }
+    .logo{
+      width:84px; 
+      height:84px; 
+      margin:4px auto 8px; 
+      display:flex; 
+      align-items:center; 
+      justify-content:center;
+      border-radius:12px; 
+      background:rgba(255,255,255,0.06);
+    }
+    .logo img{max-width:100%; max-height:100%; object-fit:contain}
+    .hdr-title{margin:0; font-weight:800; font-size:20px; text-align:center}
+    .hdr-tag{margin:4px 0 0; text-align:center; color:var(--fpg-gold); font-weight:600; font-size:12px}
+    .hdr-meta{
+      margin-top:10px; 
+      display:flex; 
+      justify-content:space-between; 
+      align-items:center; 
+      gap:8px; 
+      font-size:12px
+    }
+    .pill{
+      background:rgba(255,255,255,0.12); 
+      border:1px solid rgba(255,255,255,0.2); 
+      padding:6px 10px; 
+      border-radius:999px;
+      font-size:11px;
+    }
+    .offline-badge {
+      display:flex;
+      align-items:center;
+      gap:4px;
+      font-size:11px;
+      padding:4px 8px;
+      background:var(--warning);
+      border-radius:999px;
+      color:white;
+      font-weight:700;
+    }
+    
+    /* Tabs */
+    .tabs{
+      display:flex; 
+      border-bottom:1px solid var(--line);
+      background:var(--card);
+      position:sticky;
+      top:140px;
+      z-index:9;
+    }
+    .tab{
+      flex:1; 
+      text-align:center; 
+      padding:10px 6px; 
+      font-weight:700; 
+      font-size:13px; 
+      color:var(--muted); 
+      background:#fff; 
+      border:none; 
+      cursor:pointer;
+      transition:all 0.2s;
+    }
+    .tab.active{
+      color:var(--fpg-green); 
+      background:#d4edda;
+    }
+    .content{padding:14px}
+    .view{display:none; animation:.18s ease-out fade}
+    .view.active{display:block}
+    @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+    
+    /* Course header */
+    .course-head{
+      background:linear-gradient(135deg,var(--fpg-green) 0%,var(--fpg-green-dark) 100%);
+      color:#fff; 
+      border-radius:12px; 
+      padding:12px; 
+      margin-bottom:12px;
+      box-shadow:0 4px 12px rgba(60,118,61,0.2);
+    }
+    .course-row{
+      display:flex; 
+      justify-content:space-between; 
+      align-items:center; 
+      gap:10px
+    }
+    .hole-grid{
+      display:grid; 
+      grid-template-columns:repeat(3,1fr); 
+      gap:8px; 
+      margin-top:8px; 
+      font-size:12px
+    }
+    .hg-cell{
+      text-align:center; 
+      background:rgba(255,255,255,0.08); 
+      border:1px solid rgba(255,255,255,0.18); 
+      border-radius:8px; 
+      padding:8px;
+    }
+    .hg-title{opacity:.85; font-size:11px; margin-bottom:2px;}
+    .hg-val{font-weight:800; font-size:16px}
+    
+    .nav-row{
+      display:grid; 
+      grid-template-columns:1fr 1fr; 
+      gap:8px; 
+      margin:12px 0 6px
+    }
+    .btn{
+      padding:10px; 
+      border-radius:10px; 
+      border:2px solid var(--fpg-green); 
+      font-weight:800; 
+      cursor:pointer; 
+      background:#fff; 
+      color:var(--fpg-green);
+      transition:all 0.2s;
+      font-size:14px;
+    }
+    .btn:hover{
+      background:var(--fpg-green);
+      color:#fff;
+      transform:translateY(-1px);
+    }
+    .btn.primary{
+      background:var(--fpg-green); 
+      color:#fff
+    }
+    .btn.primary:hover{
+      background:var(--fpg-green-dark);
+    }
+    .btn:disabled{
+      opacity:.5; 
+      cursor:not-allowed;
+      transform:none;
+    }
+    
+    /* Players grid */
+    .players{
+      display:grid; 
+      grid-template-columns:1fr 1fr; 
+      gap:10px
+    }
+    .player{
+      border:2px solid var(--line); 
+      border-radius:12px; 
+      padding:10px; 
+      background:#fff;
+      transition:all 0.2s;
+    }
+    .player:hover{
+      border-color:var(--fpg-green);
+      box-shadow:0 2px 8px rgba(60,118,61,0.1);
+    }
+    .p-top{
+      display:flex; 
+      align-items:center; 
+      gap:8px; 
+      margin-bottom:8px
+    }
+    .avatar{
+      width:34px; 
+      height:34px; 
+      border-radius:50%; 
+      background:var(--fpg-green); 
+      color:#fff; 
+      display:flex; 
+      align-items:center; 
+      justify-content:center; 
+      font-weight:800;
+      font-size:14px;
+    }
+    .p-name{
+      font-weight:800; 
+      font-size:14px; 
+      display:flex; 
+      align-items:center; 
+      gap:6px
+    }
+    .stroke-dot{
+      display:inline-block; 
+      width:8px; 
+      height:8px; 
+      border-radius:50%; 
+      background:var(--fpg-green)
+    }
+    .subline{
+      font-size:11px; 
+      color:var(--muted); 
+      margin-top:2px; 
+      display:flex; 
+      gap:10px; 
+      align-items:center
+    }
+    
+    /* Score buttons */
+    .score-row{
+      display:grid; 
+      grid-template-columns:repeat(5,1fr); 
+      gap:6px
+    }
+    .score-btn{
+      border:1px solid var(--line); 
+      border-radius:8px; 
+      padding:10px 0; 
+      background:#f3f4f6; 
+      font-weight:800; 
+      color:#374151; 
+      cursor:pointer; 
+      text-align:center;
+      transition:all 0.15s;
+    }
+    .score-btn:hover{
+      background:#e5e7eb;
+      transform:scale(1.05);
+    }
+    .score-btn.active{
+      background:var(--fpg-green); 
+      color:#fff; 
+      border-color:var(--fpg-green);
+      box-shadow:0 2px 8px rgba(60,118,61,0.3);
+    }
+    .pts{
+      margin-top:6px; 
+      font-size:12px; 
+      font-weight:700; 
+      color:var(--fpg-green)
+    }
+    
+    /* Alerts */
+    .alert{
+      border-radius:10px; 
+      padding:10px; 
+      font-size:12px; 
+      margin:8px 0;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .alert.info{
+      background:#d1ecf1; 
+      color:#0c5460; 
+      border:1px solid #9bd5e1
+    }
+    .alert.success{
+      background:#d1fae5;
+      color:#065f46;
+      border:1px solid #a7f3d0;
+    }
+    .alert.warning{
+      background:#fff3cd;
+      color:#856404;
+      border:1px solid #ffe08a;
+    }
+    
+    /* Card table */
+    .card-wrapper{
+      overflow-x:auto;
+      border-radius:8px;
+      border:1px solid var(--line);
+    }
+    table{
+      width:100%; 
+      border-collapse:collapse; 
+      font-size:12px;
+      background:#fff;
+    }
+    th,td{
+      padding:8px 6px; 
+      border-bottom:1px solid var(--line); 
+      text-align:center
+    }
+    thead th{
+      position:sticky; 
+      top:0; 
+      background:#d4edda; 
+      z-index:1;
+      font-weight:800;
+    }
+    
+    /* Export section */
+    .export-section{
+      margin-top:1rem;
+      padding:1rem;
+      border:2px dashed var(--line);
+      border-radius:12px;
+      text-align:center;
+    }
+    .export-section h3{
+      margin:0 0 0.5rem;
+      color:var(--fpg-green);
+    }
+    .export-section p{
+      margin:0.5rem 0;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .sync-info{
+      background:var(--bg);
+      padding:12px;
+      border-radius:8px;
+      margin-top:1rem;
+      font-size:12px;
+    }
+    .sync-info strong{
+      color:var(--fpg-green);
+    }
+    
+    .spacer{height:20px}
+    
+    @media (max-width: 640px) {
+      .players{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <img src="https://raw.githubusercontent.com/tkdbrad03/fpg-scorekeeper/main/fpg-logo.png" alt="FPG Logo" />
+      </div>
+      <h1 class="hdr-title">Offline Scorekeeper</h1>
+      <div class="hdr-tag">No Internet Required</div>
+      <div class="hdr-meta">
+        <div class="pill" id="meta-course">Course</div>
+        <div class="pill" id="meta-group">Group</div>
+        <div class="offline-badge">
+          📱 Offline Mode
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="play">⛳ Play</button>
+      <button class="tab" data-tab="card">📋 Card</button>
+      <button class="tab" data-tab="export">💾 Export</button>
+    </div>
+
+    <!-- Views -->
+    <div class="content">
+      <!-- PLAY VIEW -->
+      <div id="view-play" class="view active">
+        <div class="alert info">
+          📱 All scores saved locally on your device. No internet needed!
+        </div>
+        
+        <div class="course-head">
+          <div class="course-row">
+            <div id="course-name" style="font-weight:800">Course</div>
+            <div id="group-name" style="opacity:.9"></div>
+          </div>
+          <div class="hole-grid">
+            <div class="hg-cell">
+              <div class="hg-title">Hole</div>
+              <div class="hg-val" id="hole-num">1</div>
+            </div>
+            <div class="hg-cell">
+              <div class="hg-title">Par</div>
+              <div class="hg-val" id="hole-par">4</div>
+            </div>
+            <div class="hg-cell">
+              <div class="hg-title">HCP</div>
+              <div class="hg-val" id="hole-hcp">11</div>
+            </div>
+          </div>
+          <div class="nav-row">
+            <button class="btn" id="btn-prev">← Previous</button>
+            <button class="btn primary" id="btn-next">Next →</button>
+          </div>
+        </div>
+
+        <div class="players" id="players-grid"></div>
+        <div class="spacer"></div>
+      </div>
+
+      <!-- CARD VIEW -->
+      <div id="view-card" class="view">
+        <div class="alert info">
+          📊 Complete scorecard saved on your device
+        </div>
+        <div class="card-wrapper">
+          <table id="card-table"></table>
+        </div>
+      </div>
+
+      <!-- EXPORT VIEW -->
+      <div id="view-export" class="view">
+        <div class="alert warning">
+          💾 Your scores are saved locally. Use these options to share or backup your data.
+        </div>
+        
+        <div class="export-section">
+          <h3>📋 Copy to Clipboard</h3>
+          <p>Copy scores as text to paste into messages, emails, or notes</p>
+          <button class="btn primary" onclick="copyToClipboard()">📋 Copy All Scores</button>
+        </div>
+
+        <div class="export-section">
+          <h3>📄 Download CSV</h3>
+          <p>Download as spreadsheet file for Excel or Google Sheets</p>
+          <button class="btn primary" onclick="downloadCSV()">📄 Download CSV</button>
+        </div>
+
+        <div class="export-section">
+          <h3>📤 Export JSON</h3>
+          <p>Export complete data for backup or syncing later</p>
+          <button class="btn primary" onclick="downloadJSON()">📤 Export JSON</button>
+        </div>
+
+        <div class="sync-info">
+          <strong>💡 Syncing Later:</strong><br>
+          When you have internet, you can:
+          <ul style="margin:8px 0; padding-left:20px; text-align:left;">
+            <li>Upload the CSV to Google Sheets</li>
+            <li>Send the JSON to your admin</li>
+            <li>Copy/paste scores into the online system</li>
+          </ul>
+        </div>
+
+        <div class="export-section">
+          <h3>🗑️ Clear Data</h3>
+          <p style="color:var(--error)">⚠️ This will delete all saved scores</p>
+          <button class="btn" style="border-color:var(--error);color:var(--error)" onclick="confirmClear()">🗑️ Clear All Data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State - everything stored locally
+    let selectedCourse = null;
+    let selectedGroupIndex = null;
+    let courseHoles = [];
+    let players = [];
+    let groupNumber = null;
+    let currentHole = 1;
+    const maxHoles = 18;
+    const scores = {};
+    const roundDate = new Date().toISOString().split('T')[0];
+
+    // Initialize from previous selection
+    (function bootstrap() {
+      try {
+        selectedCourse = JSON.parse(localStorage.getItem("selectedCourse"));
+        selectedGroupIndex = parseInt(localStorage.getItem("selectedGroup"), 10);
+        
+        if (!selectedCourse || selectedGroupIndex === null) {
+          alert("Please select course and group first");
+          // In production, redirect to selection page
+          // For now, use mock data
+          useMockData();
+        } else {
+          loadCourseMeta();
+        }
+      } catch (e) {
+        console.error(e);
+        useMockData();
+      }
+      
+      // Load any previously saved scores
+      loadSavedScores();
+    })();
+
+    function useMockData() {
+      // Mock data for testing
+      selectedCourse = {
+        course_name: "Sample Course",
+        course_holes: Array.from({length:18}, (_, i) => ({
+          par: i % 2 === 0 ? 4 : 3,
+          hcp: i + 1
+        }))
+      };
+      players = [
+        {name: "Player 1", handicap: 10, quota: 30, strokesGiven: 10, pointsTotal: 0},
+        {name: "Player 2", handicap: 15, quota: 25, strokesGiven: 15, pointsTotal: 0},
+        {name: "Player 3", handicap: 8, quota: 32, strokesGiven: 8, pointsTotal: 0},
+        {name: "Player 4", handicap: 12, quota: 28, strokesGiven: 12, pointsTotal: 0}
+      ];
+      groupNumber = "A";
+      players.forEach(p => { scores[p.name] = {}; });
+      courseHoles = selectedCourse.course_holes;
+      
+      document.getElementById('course-name').textContent = "Sample Course";
+      document.getElementById('meta-course').textContent = "Sample Course";
+      document.getElementById('group-name').textContent = "Group A";
+      document.getElementById('meta-group').textContent = "Group A";
+      
+      updateHoleHeader();
+      renderPlayers();
+    }
+
+    function loadCourseMeta() {
+      document.getElementById('course-name').textContent = selectedCourse.course_name;
+      document.getElementById('meta-course').textContent = selectedCourse.course_name;
+
+      const group = selectedCourse.groups[selectedGroupIndex];
+      groupNumber = group.group_number;
+      
+      document.getElementById('group-name').textContent = `Group ${group.group_number} — ${group.tee_time}`;
+      document.getElementById('meta-group').textContent = `G${group.group_number}`;
+
+      courseHoles = selectedCourse.course_holes || [];
+      updateHoleHeader();
+
+      players = group.players.map(p => ({
+        name: p.name || p,
+        handicap: 10, // Would come from quota sheet
+        quota: 30,
+        strokesGiven: 10,
+        pointsTotal: 0
+      }));
+
+      players.forEach(p => { scores[p.name] = {}; });
+      renderPlayers();
+    }
+
+    function loadSavedScores() {
+      const key = `fpg_offline_${roundDate}_g${groupNumber}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const data = JSON.parse(saved);
+        Object.assign(scores, data.scores);
+        // Recalculate totals
+        players.forEach(p => {
+          p.pointsTotal = Object.values(scores[p.name] || {}).reduce((sum, h) => sum + (h?.pts || 0), 0);
+        });
+      }
+    }
+
+    function saveScores() {
+      const key = `fpg_offline_${roundDate}_g${groupNumber}`;
+      const data = {
+        roundDate,
+        course: selectedCourse?.course_name || "Unknown",
+        group: groupNumber,
+        timestamp: new Date().toISOString(),
+        players: players.map(p => ({
+          name: p.name,
+          handicap: p.handicap,
+          quota: p.quota,
+          pointsTotal: p.pointsTotal
+        })),
+        scores
+      };
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+
+    // Stableford calculation
+    function stablefordPoints(gross, par, strokeApplied) {
+      if (!gross || !par) return 0;
+      const net = gross - (strokeApplied ? 1 : 0);
+      const diff = net - par;
+      if (diff >= 2) return 0;
+      if (diff === 1) return 1;
+      if (diff === 0) return 2;
+      if (diff === -1) return 3;
+      return 4;
+    }
+
+    function updateHoleHeader() {
+      const hole = courseHoles[currentHole - 1] || {};
+      document.getElementById('hole-num').textContent = currentHole;
+      document.getElementById('hole-par').textContent = hole.par ?? '?';
+      document.getElementById('hole-hcp').textContent = hole.hcp ?? '?';
+    }
+
+    function renderPlayers() {
+      const grid = document.getElementById('players-grid');
+      grid.innerHTML = '';
+      
+      const hole = courseHoles[currentHole - 1] || {};
+      
+      players.forEach((p, i) => {
+        const initial = (p.name[0] || '').toUpperCase();
+        const strokeApplies = hole.hcp && p.strokesGiven && hole.hcp <= p.strokesGiven;
+        
+        const card = document.createElement('div');
+        card.className = 'player';
+        card.innerHTML = `
+          <div class="p-top">
+            <div class="avatar">${initial}</div>
+            <div style="flex:1">
+              <div class="p-name">
+                <span>${p.name}</span>
+                ${strokeApplies ? `<span class="stroke-dot"></span>` : ''}
+              </div>
+              <div class="subline">
+                <span>HCP: ${p.handicap ?? '—'}</span>
+                <span>Pts: ${p.pointsTotal}</span>
+              </div>
+            </div>
+          </div>
+          <div class="score-row" id="scores-${i}">
+            ${[1,2,3,4,5,6,7,8,9,10].map(s => {
+              const prev = scores[p.name]?.[currentHole]?.gross;
+              const active = prev === s ? 'active' : '';
+              return `<button class="score-btn ${active}" data-player="${i}" data-score="${s}">${s}</button>`;
+            }).join('')}
+          </div>
+          <div class="pts" id="pts-${i}"></div>
+        `;
+        grid.appendChild(card);
+      });
+
+      // Wire events
+      grid.querySelectorAll('.score-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pIdx = parseInt(btn.dataset.player);
+          const gross = parseInt(btn.dataset.score);
+          setPlayerScore(pIdx, gross);
+          
+          btn.parentElement.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+    }
+
+    function setPlayerScore(playerIndex, grossScore) {
+      const p = players[playerIndex];
+      const hole = courseHoles[currentHole - 1] || {};
+      const strokeApplies = hole.hcp && p.strokesGiven && hole.hcp <= p.strokesGiven;
+      const pts = stablefordPoints(grossScore, hole.par, strokeApplies);
+
+      if (!scores[p.name][currentHole]) {
+        scores[p.name][currentHole] = { gross: null, pts: 0, strokeApplied: false };
+      }
+      
+      scores[p.name][currentHole].gross = grossScore;
+      scores[p.name][currentHole].pts = pts;
+      scores[p.name][currentHole].strokeApplied = strokeApplies;
+
+      p.pointsTotal = Object.values(scores[p.name]).reduce((sum, h) => sum + (h?.pts || 0), 0);
+
+      document.getElementById(`pts-${playerIndex}`).textContent = `${pts} ${pts === 1 ? 'pt' : 'pts'}`;
+      
+      // Save immediately
+      saveScores();
+    }
+
+    // Navigation
+    function changeHole(delta) {
+      const next = currentHole + delta;
+      if (next < 1 || next > maxHoles) return;
+      currentHole = next;
+      updateHoleHeader();
+      renderPlayers();
+    }
+
+    document.getElementById('btn-prev').addEventListener('click', () => changeHole(-1));
+    document.getElementById('btn-next').addEventListener('click', () => changeHole(1));
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(`view-${tab}`).classList.add('active');
+        
+        if (tab === 'card') renderCard();
+      });
+    });
+
+    // Card view
+    function renderCard() {
+      const headers = [`<th>Hole</th><th>Par</th>`]
+        .concat(players.map(p => `<th>${p.name.split(' ')[0]}</th>`))
+        .join("");
+
+      const rows = [];
+      for (let h = 1; h <= 18; h++) {
+        const hole = courseHoles[h - 1] || {};
+        const tds = [`<td><strong>${h}</strong></td>`, `<td>${hole.par ?? "-"}</td>`];
+
+        players.forEach(p => {
+          const entry = scores[p.name]?.[h];
+          const val = entry?.gross ?? "";
+          const badge = entry?.pts != null ? ` (${entry.pts})` : "";
+          const dot = entry?.strokeApplied ? ` •` : "";
+          tds.push(`<td>${val}${badge}${dot}</td>`);
+        });
+        rows.push(`<tr>${tds.join("")}</tr>`);
+      }
+
+      const foot = (() => {
+        const sums = players.map(p => {
+          let pts = 0, gross = 0;
+          for (let h = 1; h <= 18; h++) {
+            const e = scores[p.name]?.[h];
+            if (e) {
+              pts += e.pts || 0;
+              gross += e.gross || 0;
+            }
+          }
+          return { pts, gross };
+        });
+        const tds = [`<td colspan="2" style="text-align:right;font-weight:800">Totals</td>`]
+          .concat(sums.map(s => `<td><strong>${s.gross || 0}</strong><br><small>${s.pts || 0} pts</small></td>`));
+        return `<tr>${tds.join("")}</tr>`;
+      })();
+
+      document.getElementById('card-table').innerHTML = `
+        <thead><tr>${headers}</tr></thead>
+        <tbody>${rows.join("")}${foot}</tbody>
+      `;
+    }
+
+    // Export functions
+    function copyToClipboard() {
+      let text = `FPG Scorecard - ${roundDate}\n`;
+      text += `Course: ${selectedCourse?.course_name || "Unknown"}\n`;
+      text += `Group: ${groupNumber}\n\n`;
+      
+      players.forEach(p => {
+        text += `${p.name} (HCP ${p.handicap})\n`;
+        for (let h = 1; h <= 18; h++) {
+          const entry = scores[p.name]?.[h];
+          if (entry) {
+            text += `  Hole ${h}: ${entry.gross} (${entry.pts} pts)\n`;
+          }
+        }
+        text += `  Total: ${p.pointsTotal} points\n\n`;
+      });
+      
+      navigator.clipboard.writeText(text).then(() => {
+        alert('✅ Scores copied to clipboard!');
+      }).catch(() => {
+        alert('❌ Failed to copy. Try the CSV download instead.');
+      });
+    }
+
+    function downloadCSV() {
+      let csv = "Round Date,Group,Player,Hole,Score,Stableford Points,Stroke Applied\n";
+      
+      players.forEach(p => {
+        for (let h = 1; h <= 18; h++) {
+          const entry = scores[p.name]?.[h];
+          if (entry) {
+            csv += `${roundDate},${groupNumber},${p.name},${h},${entry.gross},${entry.pts},${entry.strokeApplied ? 'Yes' : 'No'}\n`;
+          }
+        }
+      });
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fpg-scores-${roundDate}-group${groupNumber}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadJSON() {
+      const data = {
+        roundDate,
+        course: selectedCourse?.course_name || "Unknown",
+        group: groupNumber,
+        exportedAt: new Date().toISOString(),
+        players: players.map(p => ({
+          name: p.name,
+          handicap: p.handicap,
+          quota: p.quota,
+          pointsTotal: p.pointsTotal
+        })),
+        scores
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fpg-scores-${roundDate}-group${groupNumber}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function confirmClear() {
+      if (confirm('⚠️ Are you sure? This will delete all saved scores for this round.')) {
+        const key = `fpg_offline_${roundDate}_g${groupNumber}`;
+        localStorage.removeItem(key);
+        
+        // Reset scores
+        players.forEach(p => {
+          scores[p.name] = {};
+          p.pointsTotal = 0;
+        });
+        
+        currentHole = 1;
+        updateHoleHeader();
+        renderPlayers();
+        
+        alert('✅ All data cleared');
+      }
+    }
+  </script>
+</body>
+</html>
