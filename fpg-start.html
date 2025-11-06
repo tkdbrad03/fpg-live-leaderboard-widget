@@ -18,7 +18,6 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen">
 
-  <!-- Logo -->
   <div class="mb-6">
     <img 
       src="https://raw.githubusercontent.com/tkdbrad03/fpg-scorekeeper/main/fpg-logo.png"
@@ -27,7 +26,6 @@
     />
   </div>
 
-  <!-- Scorekeeper Choice -->
   <div class="text-center mb-8">
     <h2 class="text-xl font-bold mb-3 text-gray-800">Will you be keeping score today?</h2>
     <div class="flex justify-center space-x-4">
@@ -36,7 +34,6 @@
     </div>
   </div>
 
-  <!-- Dropdowns -->
   <div class="w-full max-w-md bg-white shadow-md rounded-lg p-6">
     <label for="course-select" class="block text-gray-700 font-semibold mb-2">Choose Course</label>
     <select id="course-select" class="w-full border border-gray-300 rounded-md p-2 mb-4">
@@ -49,7 +46,6 @@
     </select>
   </div>
 
-  <!-- Continue Button -->
   <div class="mt-6 text-center">
     <button 
       id="continue-btn" 
@@ -57,6 +53,10 @@
     >
       Continue
     </button>
+  </div>
+
+  <div style="text-align:center; padding:2rem 1rem; color:#6b7280; font-size:0.875rem; margin-top:2rem;">
+    Powered by CompliTrst™ • <span id="footer-date"></span>
   </div>
 
   <script>
@@ -67,36 +67,22 @@
     let selectedGroup = null;
     let isScorekeeper = false;
 
-    // ==============================
-    // Load Courses from JSONBin
-    // ==============================
     async function loadCourses() {
       try {
         const res = await fetch(BIN_URL);
         const data = await res.json();
 
-        console.log("Raw data:", data); // Debug
-
-        // Handle deeply nested JSONBin structure
-        // Your data is wrapped in: record -> [[[[[array]]]]]
         let unwrapped = data.record || data;
         
-        // Unwrap multiple array layers
-        while (Array.isArray(unwrapped) && unwrapped.length === 1) {
+        while (Array.isArray(unwrapped) && unwrapped.length === 1 && Array.isArray(unwrapped[0])) {
           unwrapped = unwrapped[0];
         }
         
-        // If still wrapped in array, get first element
-        if (Array.isArray(unwrapped) && unwrapped.length > 0 && Array.isArray(unwrapped[0])) {
-          // Keep unwrapping
-          while (Array.isArray(unwrapped[0])) {
-            unwrapped = unwrapped[0];
-          }
+        if (Array.isArray(unwrapped) && unwrapped.length === 1) {
+          unwrapped = unwrapped[0];
         }
 
         courses = Array.isArray(unwrapped) ? unwrapped : [unwrapped];
-        
-        console.log("Unwrapped courses:", courses); // Debug
 
         const courseSelect = document.getElementById("course-select");
         
@@ -110,7 +96,7 @@
         courses.forEach((c, index) => {
           const opt = document.createElement("option");
           opt.value = index;
-          opt.textContent = c.course_name;
+          opt.textContent = c.course_name || 'Unknown Course';
           courseSelect.appendChild(opt);
         });
       } catch (err) {
@@ -119,9 +105,6 @@
       }
     }
 
-    // ==============================
-    // When a Course is Selected
-    // ==============================
     document.getElementById("course-select").addEventListener("change", function() {
       const index = this.value;
       const groupSelect = document.getElementById("group-select");
@@ -134,8 +117,6 @@
 
       selectedCourse = courses[index];
       
-      // Normalize the course structure
-      // Your data uses "holes" but code expects "course_holes"
       if (selectedCourse.holes && !selectedCourse.course_holes) {
         selectedCourse.course_holes = selectedCourse.holes;
       }
@@ -151,22 +132,16 @@
       groups.forEach((g, i) => {
         const opt = document.createElement("option");
         opt.value = i;
-        opt.textContent = `Group ${g.group_number} - ${g.tee_time}`;
+        opt.textContent = 'Group ' + g.group_number + ' - ' + g.tee_time;
         groupSelect.appendChild(opt);
       });
     });
 
-    // ==============================
-    // Group Selection
-    // ==============================
     document.getElementById("group-select").addEventListener("change", function() {
       const val = this.value;
       selectedGroup = val !== "" ? val : null;
     });
 
-    // ==============================
-    // Scorekeeper Toggle Buttons
-    // ==============================
     document.getElementById("yes-scorekeeper").addEventListener("click", function() {
       isScorekeeper = true;
       this.classList.add("selected");
@@ -179,9 +154,6 @@
       document.getElementById("yes-scorekeeper").classList.remove("selected");
     });
 
-    // ==============================
-    // Continue Button
-    // ==============================
     document.getElementById("continue-btn").addEventListener("click", function() {
       if (!selectedCourse) {
         alert("Please select a course before continuing.");
@@ -198,16 +170,17 @@
         return;
       }
 
-      // Save user selection in localStorage for use in scorekeeping screen
       localStorage.setItem("selectedCourse", JSON.stringify(selectedCourse));
       localStorage.setItem("selectedGroup", selectedGroup);
       localStorage.setItem("isScorekeeper", isScorekeeper);
 
-      // Redirect to scorekeeping page
       window.location.href = "fpg-tracker.html";
     });
 
-    // Initialize
+    const now = new Date();
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('footer-date').textContent = now.toLocaleDateString('en-US', options);
+
     loadCourses();
   </script>
 </body>
