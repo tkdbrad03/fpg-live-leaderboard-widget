@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPG - Login</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --fpg-green: #3c763d;
+      --fpg-green-dark: #2d5a2e;
+      --fpg-gold: #e6b800;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    
+    .login-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      max-width: 420px;
+      width: 100%;
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, var(--fpg-green) 0%, var(--fpg-green-dark) 100%);
+      color: white;
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+    
+    .logo {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 1rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .logo img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+    
+    .header h1 {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .header .tagline {
+      color: var(--fpg-gold);
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .content {
+      padding: 2rem 1.5rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: var(--fpg-green);
+      box-shadow: 0 0 0 3px rgba(60, 118, 61, 0.1);
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 0.875rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: var(--fpg-green);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--fpg-green-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(60, 118, 61, 0.3);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    
+    .btn-primary:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+      margin-top: 0.75rem;
+    }
+    
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+    
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    
+    .alert-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    
+    .alert-success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    
+    .divider {
+      text-align: center;
+      margin: 1.5rem 0;
+      position: relative;
+    }
+    
+    .divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: #e5e7eb;
+    }
+    
+    .divider span {
+      background: white;
+      padding: 0 1rem;
+      position: relative;
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+    
+    .quick-links {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    
+    .quick-link {
+      padding: 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      text-align: center;
+      text-decoration: none;
+      color: #374151;
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    
+    .quick-link:hover {
+      border-color: var(--fpg-green);
+      background: #f0fdf4;
+      color: var(--fpg-green);
+    }
+    
+    .quick-link-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .footer {
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #6b7280;
+      border-top: 1px solid #e5e7eb;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-left: 0.5rem;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="header">
+      <div class="logo">
+        <img src="https://raw.githubusercontent.com/tkdbrad03/fpg-scorekeeper/main/fpg-logo.png" alt="FPG Logo" />
+      </div>
+      <h1>Florida Players Group</h1>
+      <p class="tagline">Good Golf • Good Friends • Good Times</p>
+    </div>
+
+    <div class="content">
+      <div id="alert-container"></div>
+
+      <!-- Login Form -->
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required autocomplete="username">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+        
+        <button type="submit" class="btn btn-primary" id="login-btn">
+          Sign In
+        </button>
+      </form>
+
+      <div class="divider">
+        <span>or continue as</span>
+      </div>
+
+      <div class="quick-links">
+        <a href="fpg-leaderboard-enhanced.html" class="quick-link">
+          <div class="quick-link-icon">📊</div>
+          <div>View Leaderboard</div>
+        </a>
+        <a href="#" class="quick-link" onclick="guestAccess(); return false;">
+          <div class="quick-link-icon">👤</div>
+          <div>Guest Access</div>
+        </a>
+      </div>
+    </div>
+
+    <div class="footer">
+      © 2025 Florida Players Group. All rights reserved.
+    </div>
+  </div>
+
+  <script>
+    const API_URL = '/api/change-password'; // Your serverless function endpoint
+    
+    function showAlert(message, type = 'error') {
+      const container = document.getElementById('alert-container');
+      const alertClass = type === 'error' ? 'alert-error' : 'alert-success';
+      container.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+      
+      if (type === 'success') {
+        setTimeout(() => {
+          container.innerHTML = '';
+        }, 3000);
+      }
+    }
+    
+    function setLoading(isLoading) {
+      const btn = document.getElementById('login-btn');
+      if (isLoading) {
+        btn.disabled = true;
+        btn.innerHTML = 'Signing In<span class="loading-spinner"></span>';
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = 'Sign In';
+      }
+    }
+    
+    // Mock authentication - In production, this would validate against your credentials sheet
+    async function authenticate(username, password) {
+      // For demo purposes, we'll simulate authentication
+      // In production, you'd call your API endpoint here
+      
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          // Simulate API call
+          // In real implementation, this would check against your Google Sheet
+          const mockUsers = {
+            'demo': 'demo123',
+            'scorekeeper': 'score123',
+            'admin': 'admin123'
+          };
+          
+          if (mockUsers[username] && mockUsers[username] === password) {
+            resolve({ success: true, user: { username, role: username } });
+          } else {
+            resolve({ success: false, error: 'Invalid username or password' });
+          }
+        }, 800);
+      });
+    }
+    
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      
+      if (!username || !password) {
+        showAlert('Please enter both username and password');
+        return;
+      }
+      
+      setLoading(true);
+      showAlert(''); // Clear previous alerts
+      
+      try {
+        const result = await authenticate(username, password);
+        
+        if (result.success) {
+          // Store session
+          sessionStorage.setItem('fpg_user', JSON.stringify(result.user));
+          sessionStorage.setItem('fpg_authenticated', 'true');
+          
+          showAlert('Login successful! Redirecting...', 'success');
+          
+          // Redirect based on role
+          setTimeout(() => {
+            if (result.user.role === 'admin') {
+              window.location.href = 'fpg-dashboard.html';
+            } else {
+              window.location.href = 'fpg-start.html'; // Your existing start screen
+            }
+          }, 1000);
+        } else {
+          showAlert(result.error || 'Authentication failed');
+        }
+      } catch (error) {
+        showAlert('An error occurred. Please try again.');
+        console.error('Login error:', error);
+      } finally {
+        setLoading(false);
+      }
+    });
+    
+    function guestAccess() {
+      sessionStorage.setItem('fpg_user', JSON.stringify({ username: 'Guest', role: 'guest' }));
+      sessionStorage.setItem('fpg_authenticated', 'true');
+      showAlert('Continuing as guest...', 'success');
+      setTimeout(() => {
+        window.location.href = 'fpg-start.html';
+      }, 500);
+    }
+    
+    // Check if already logged in
+    if (sessionStorage.getItem('fpg_authenticated') === 'true') {
+      const user = JSON.parse(sessionStorage.getItem('fpg_user') || '{}');
+      if (user.username) {
+        showAlert(`Welcome back, ${user.username}!`, 'success');
+      }
+    }
+  </script>
+</body>
+</html>
