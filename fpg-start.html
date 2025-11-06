@@ -69,20 +69,55 @@
 
     async function loadCourses() {
       try {
-        const res = await fetch(BIN_URL);
+        const cacheBuster = '?v=' + Date.now();
+        const res = await fetch(BIN_URL + cacheBuster);
         const data = await res.json();
 
-        let unwrapped = data.record || data;
+        console.log('Raw response:', data);
+
+        let coursesArray = data.record;
         
-        while (Array.isArray(unwrapped) && unwrapped.length === 1 && Array.isArray(unwrapped[0])) {
-          unwrapped = unwrapped[0];
-        }
+        console.log('After getting record:', coursesArray);
+        console.log('Is array?', Array.isArray(coursesArray));
+        console.log('Length:', coursesArray?.length);
         
-        if (Array.isArray(unwrapped) && unwrapped.length === 1) {
-          unwrapped = unwrapped[0];
+        // Aggressive unwrapping - keep going until we hit actual course objects
+        let maxIterations = 10;
+        let iterations = 0;
+        
+        while (iterations < maxIterations && Array.isArray(coursesArray)) {
+          iterations++;
+          console.log('Iteration', iterations, '- Type:', typeof coursesArray[0], 'Length:', coursesArray.length);
+          
+          // If we have an array with course objects, we're done
+          if (coursesArray.length > 0 && coursesArray[0] && typeof coursesArray[0] === 'object' && coursesArray[0].course_name) {
+            console.log('Found courses array!');
+            break;
+          }
+          
+          // If single element array, unwrap it
+          if (coursesArray.length === 1) {
+            coursesArray = coursesArray[0];
+          } else {
+            // Multiple elements - assume this is the courses array
+            break;
+          }
         }
 
-        courses = Array.isArray(unwrapped) ? unwrapped : [unwrapped];
+        // Final check - if still wrapped, try one more unwrap
+        if (Array.isArray(coursesArray) && coursesArray.length === 1 && Array.isArray(coursesArray[0])) {
+          coursesArray = coursesArray[0];
+        }
+
+        courses = Array.isArray(coursesArray) ? coursesArray : [coursesArray];
+        
+        console.log('Final courses:', courses);
+        console.log('Total courses found:', courses.length);
+        
+        if (courses.length > 0) {
+          console.log('First course:', courses[0]?.course_name);
+          console.log('Last course:', courses[courses.length - 1]?.course_name);
+        }
 
         const courseSelect = document.getElementById("course-select");
         
@@ -96,12 +131,15 @@
         courses.forEach((c, index) => {
           const opt = document.createElement("option");
           opt.value = index;
-          opt.textContent = c.course_name || 'Unknown Course';
+          opt.textContent = c.course_name || c.name || 'Unknown Course';
           courseSelect.appendChild(opt);
+          console.log('Added course:', opt.textContent);
         });
+        
+        console.log('Course dropdown populated with', courses.length, 'courses');
       } catch (err) {
         console.error("Error loading courses:", err);
-        document.getElementById("course-select").innerHTML = '<option value="">Error loading courses</option>';
+        document.getElementById("course-select").innerHTML = '<option value="">Error: ' + err.message + '</option>';
       }
     }
 
@@ -162,11 +200,6 @@
 
       if (selectedGroup === null) {
         alert("Please select your group before continuing.");
-        return;
-      }
-
-      if (isScorekeeper === false && isScorekeeper !== true) {
-        alert("Please choose whether you'll be keeping score.");
         return;
       }
 
