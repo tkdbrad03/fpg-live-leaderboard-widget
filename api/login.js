@@ -2,7 +2,7 @@ const { google } = require('googleapis');
 
 // Google Sheets configuration
 const SPREADSHEET_ID = '152dK2m3gluxCdBal9GGLs43aDKFBvy5BiHdnKL3gV4o';
-const CREDENTIALS_SHEET = 'Credentials';
+const CREDENTIALS_SHEET = 'FPG Credentials'; // Changed from 'Credentials'
 
 async function getAuthClient() {
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
@@ -15,32 +15,38 @@ async function getAuthClient() {
   return await auth.getClient();
 }
 
-/**
- * Login API Endpoint
- * POST /api/login
- * Body: { username, password }
- * Returns: { success: true, user: { username, email, role } }
- */
-module.exports = async (req, res) => {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+function validatePassword(password) {
+  if (password.length < 8) {
+    return 'Password must be at least 8 characters long';
   }
+  if (!/[A-Z]/.test(password)) {
+    return 'Password must contain at least one uppercase letter';
+  }
+  if (!/[0-9]/.test(password)) {
+    return 'Password must contain at least one number';
+  }
+  if (!/[!@#$%^&*]/.test(password)) {
+    return 'Password must contain at least one special character';
+  }
+  return null;
+}
 
+module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { username, password } = req.body;
+    const { username, currentPassword, newPassword } = req.body;
 
-    // Validation
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
+    if (!username || !currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // Validate new password
+    const validationError = validatePassword(newPassword);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
 
     // Get auth client
@@ -56,81 +62,54 @@ module.exports = async (req, res) => {
       });
       credentialsData = response.data.values || [];
     } catch (error) {
-      console.error('Sheet access error:', error);
-      return res.status(500).json({ 
-        error: 'Credentials sheet not found. Please contact administrator.' 
-      });
+      return res.status(500).json({ error: 'FPG Credentials sheet not found. Please contact administrator.' });
     }
 
     // Find user in credentials
-    // Sheet structure: Username (A) | Password (B) | Email (C) | Last Modified (D)
-    let userFound = false;
-    let userData = null;
+    let userRowIndex = -1;
+    let storedPassword = null;
 
     for (let i = 0; i < credentialsData.length; i++) {
-      const row = credentialsData[i];
-      if (row[0] === username) {
-        userFound = true;
-        
-        // Check password
-        if (row[1] === password) {
-          userData = {
-            username: row[0],
-            email: row[2] || '',
-            lastModified: row[3] || '',
-            // You could add role logic here if you have a role column
-            role: determineUserRole(row[0])
-          };
-          break;
-        } else {
-          // User exists but wrong password
-          return res.status(401).json({ 
-            error: 'Invalid username or password' 
-          });
-        }
+      if (credentialsData[i][0] === username) {
+        userRowIndex = i;
+        storedPassword = credentialsData[i][1];
+        break;
       }
     }
 
-    if (!userFound) {
-      return res.status(401).json({ 
-        error: 'Invalid username or password' 
-      });
+    // Check if user exists
+    if (userRowIndex === -1) {
+      return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    // Successful login
-    return res.status(200).json({
-      success: true,
-      user: userData,
-      message: 'Login successful'
+    // Verify current password
+    if (currentPassword !== storedPassword) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    // Update password for this user only
+    const timestamp = new Date().toISOString();
+    const rowNumber = userRowIndex + 2; // +2 because: +1 for header row, +1 for 0-index to 1-index
+    
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${CREDENTIALS_SHEET}!A${rowNumber}:D${rowNumber}`,
+      valueInputOption: 'RAW',
+      resource: {
+        values: [[username, newPassword, credentialsData[userRowIndex][2], timestamp]]
+      }
+    });
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Password changed successfully' 
     });
 
   } catch (error) {
-    console.error('Login error:', error);
-    return res.status(500).json({
-      error: 'Login failed',
-      details: error.message
+    console.error('Error changing password:', error);
+    return res.status(500).json({ 
+      error: 'Failed to change password',
+      details: error.message 
     });
   }
 };
-
-/**
- * Determine user role based on username or other criteria
- * You can customize this based on your needs
- */
-function determineUserRole(username) {
-  // Example role logic - customize as needed
-  const adminUsers = ['admin', 'administrator'];
-  const scorekeeperUsers = ['scorekeeper', 'keeper'];
-  
-  const userLower = username.toLowerCase();
-  
-  if (adminUsers.some(admin => userLower.includes(admin))) {
-    return 'admin';
-  }
-  
-  if (scorekeeperUsers.some(keeper => userLower.includes(keeper))) {
-    return 'scorekeeper';
-  }
-  
-  return 'user';
-}
