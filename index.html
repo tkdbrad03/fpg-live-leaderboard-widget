@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Florida Players Group - Golf Scoring</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --fpg-green: #3c763d;
+      --fpg-green-dark: #2d5a2e;
+      --fpg-gold: #e6b800;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      overflow: hidden;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--fpg-green) 0%, var(--fpg-green-dark) 100%);
+      color: white;
+      padding: 3rem 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      animation: pulse 4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .logo {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 1.5rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tagline {
+      color: var(--fpg-gold);
+      font-size: 1rem;
+      font-weight: 600;
+      position: relative;
+      z-index: 1;
+    }
+
+    .content {
+      padding: 2.5rem 2rem;
+    }
+
+    .welcome-text {
+      text-align: center;
+      color: #374151;
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    .welcome-text strong {
+      color: var(--fpg-green);
+    }
+
+    .options {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .option-card {
+      display: block;
+      background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+      border: 3px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 2rem;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .option-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--fpg-green) 0%, var(--fpg-green-dark) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .option-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(60, 118, 61, 0.2);
+      border-color: var(--fpg-green);
+    }
+
+    .option-card:hover::before {
+      opacity: 0.05;
+    }
+
+    .option-card:active {
+      transform: translateY(-2px);
+    }
+
+    .option-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .option-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--fpg-green) 0%, var(--fpg-green-dark) 100%);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(60, 118, 61, 0.3);
+    }
+
+    .option-text {
+      flex: 1;
+    }
+
+    .option-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #1f2937;
+      margin-bottom: 0.5rem;
+    }
+
+    .option-description {
+      color: #6b7280;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .option-arrow {
+      font-size: 1.5rem;
+      color: var(--fpg-green);
+      transition: transform 0.3s ease;
+    }
+
+    .option-card:hover .option-arrow {
+      transform: translateX(5px);
+    }
+
+    .footer {
+      padding: 2rem;
+      text-align: center;
+      background: #f8f9fa;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .footer-text {
+      color: #6b7280;
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-date {
+      color: #9ca3af;
+      font-size: 0.75rem;
+    }
+
+    @media (max-width: 640px) {
+      .header h1 {
+        font-size: 1.5rem;
+      }
+
+      .option-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .option-icon {
+        width: 56px;
+        height: 56px;
+        font-size: 1.75rem;
+      }
+
+      .option-title {
+        font-size: 1.25rem;
+      }
+
+      .option-arrow {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <div class="logo">
+          <img src="https://raw.githubusercontent.com/tkdbrad03/fpg-scorekeeper/main/fpg-logo.png" alt="FPG Logo" />
+        </div>
+        <h1>Florida Players Group</h1>
+        <p class="tagline">Good Golf • Good Friends • Good Times</p>
+      </div>
+
+      <div class="content">
+        <div class="welcome-text">
+          Welcome to the <strong>FPG Live Scoring System</strong>!<br>
+          Choose your role to get started.
+        </div>
+
+        <div class="options">
+          <!-- Scorekeeper Option -->
+          <a href="fpg-start.html" class="option-card">
+            <div class="option-content">
+              <div class="option-icon">⛳</div>
+              <div class="option-text">
+                <div class="option-title">Scorekeeper</div>
+                <div class="option-description">
+                  Enter scores during your round and track live stats
+                </div>
+              </div>
+              <div class="option-arrow">→</div>
+            </div>
+          </a>
+
+          <!-- Leaderboard Option -->
+          <a href="fpg-leaderboard-enhanced.html" class="option-card">
+            <div class="option-content">
+              <div class="option-icon">📊</div>
+              <div class="option-text">
+                <div class="option-title">View Leaderboard</div>
+                <div class="option-description">
+                  Watch live tournament standings and player stats
+                </div>
+              </div>
+              <div class="option-arrow">→</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="footer-text">
+          Powered by CompliTrst™
+        </div>
+        <div class="footer-date" id="current-date"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Display current date
+    const dateEl = document.getElementById('current-date');
+    const now = new Date();
+    const options = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
+    dateEl.textContent = now.toLocaleDateString('en-US', options);
+  </script>
+</body>
+</html>
