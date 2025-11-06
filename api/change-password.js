@@ -2,7 +2,7 @@ const { google } = require('googleapis');
 
 // Google Sheets configuration
 const SPREADSHEET_ID = '152dK2m3gluxCdBal9GGLs43aDKFBvy5BiHdnKL3gV4o';
-const CREDENTIALS_SHEET = 'Credentials';
+const CREDENTIALS_SHEET = 'FPG Credentials'; // Changed from 'Credentials'
 
 async function getAuthClient() {
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
       });
       credentialsData = response.data.values || [];
     } catch (error) {
-      return res.status(500).json({ error: 'Credentials sheet not found. Please contact administrator.' });
+      return res.status(500).json({ error: 'FPG Credentials sheet not found. Please contact administrator.' });
     }
 
     // Find user in credentials
