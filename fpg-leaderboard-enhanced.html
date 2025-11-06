@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FPG Live Leaderboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --primary-color: #3c763d;
+      --primary-dark: #2d5a2e;
+      --accent-color: #e6b800;
+      --bg-color: #f3f3f3;
+      --card-bg: white;
+      --text-primary: #2d5a2e;
+      --text-secondary: #6c757d;
+      --border-color: #dee2e6;
+      --gold: #FFD700;
+      --silver: #C0C0C0;
+      --bronze: #CD7F32;
+    }
+    
+    body.dark-mode {
+      --bg-color: #1a1a1a;
+      --card-bg: #2d2d2d;
+      --text-primary: #e0e0e0;
+      --text-secondary: #a0a0a0;
+      --border-color: #404040;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-color);
+      padding: 1rem;
+      transition: background 0.3s ease;
+    }
+    
+    .leaderboard-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: background 0.3s ease;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 1.5rem 1rem;
+      text-align: center;
+      position: relative;
+    }
+    
+    .header-logo {
+      width: 90px;
+      height: 90px;
+      margin: 0 auto 0.75rem;
+    }
+    
+    .header-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    }
+    
+    .header h1 { 
+      font-size: 1.75rem; 
+      margin-bottom: 0.5rem; 
+    }
+    
+    .header .tagline { 
+      color: var(--accent-color); 
+      font-size: 0.9rem; 
+    }
+    
+    .controls-bar {
+      background: var(--card-bg);
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .control-group {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background: var(--border-color);
+      color: var(--text-primary);
+    }
+    
+    .btn-secondary:hover {
+      background: #c0c0c0;
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    select {
+      padding: 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--card-bg);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+    
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.4s;
+      border-radius: 24px;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+      background-color: var(--primary-color);
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    
+    .refresh-bar {
+      background: #d1ecf1;
+      padding: 0.75rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: #0c5460;
+      border-bottom: 1px solid #bee5eb;
+    }
+    
+    body.dark-mode .refresh-bar {
+      background: #1e3a3f;
+      color: #a0d1da;
+      border-bottom-color: #2d5560;
+    }
+    
+    .content { 
+      padding: 1.5rem; 
+      min-height: 300px;
+    }
+    
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      background: var(--bg-color);
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      border-left: 4px solid var(--primary-color);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .leaderboard-item:hover { 
+      transform: translateX(4px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .leaderboard-item.first { 
+      border-left-color: var(--gold); 
+      background: #fffbe6; 
+    }
+    
+    body.dark-mode .leaderboard-item.first {
+      background: #3d3a1f;
+    }
+    
+    .leaderboard-item.second { 
+      border-left-color: var(--silver); 
+    }
+    
+    .leaderboard-item.third { 
+      border-left-color: var(--bronze); 
+    }
+    
+    .leaderboard-rank { 
+      font-size: 1.75rem; 
+      font-weight: bold; 
+      color: var(--primary-color); 
+      min-width: 60px; 
+      text-align: center; 
+    }
+    
+    .leaderboard-info { 
+      flex: 1; 
+      padding: 0 1rem; 
+    }
+    
+    .leaderboard-name { 
+      font-weight: bold; 
+      font-size: 1.125rem; 
+      color: var(--text-primary); 
+      margin-bottom: 0.25rem; 
+    }
+    
+    .leaderboard-details { 
+      font-size: 0.8rem; 
+      color: var(--text-secondary); 
+      display: flex; 
+      gap: 0.75rem; 
+      flex-wrap: wrap; 
+    }
+    
+    .detail-badge { 
+      background: var(--border-color); 
+      padding: 0.25rem 0.5rem; 
+      border-radius: 4px; 
+      font-weight: 600; 
+    }
+    
+    .detail-badge.verified { 
+      background: #d4edda; 
+      color: #2d5a2e; 
+    }
+    
+    body.dark-mode .detail-badge.verified {
+      background: #1e4620;
+      color: #7ed97e;
+    }
+    
+    .leaderboard-score { 
+      text-align: right; 
+      min-width: 80px; 
+    }
+    
+    .leaderboard-points { 
+      font-size: 1.75rem; 
+      font-weight: bold; 
+      color: var(--primary-color); 
+      line-height: 1; 
+    }
+    
+    .leaderboard-strokes { 
+      font-size: 0.75rem; 
+      color: var(--text-secondary); 
+      margin-top: 0.25rem; 
+    }
+    
+    .loading, .empty-state { 
+      text-align: center; 
+      padding: 3rem; 
+      color: var(--text-secondary); 
+    }
+    
+    .footer { 
+      background: var(--bg-color); 
+      padding: 1rem 1.5rem; 
+      text-align: center; 
+      font-size: 0.8rem; 
+      color: var(--text-secondary); 
+      border-top: 1px solid var(--border-color); 
+    }
+    
+    @keyframes spin { 
+      0%{transform:rotate(0deg);}
+      100%{transform:rotate(360deg);} 
+    }
+    
+    .loading-spinner { 
+      width:40px; 
+      height:40px; 
+      border:4px solid var(--border-color); 
+      border-top:4px solid var(--primary-color); 
+      border-radius:50%; 
+      animation:spin 1s linear infinite; 
+      margin: 0 auto 1rem; 
+    }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      animation: fadeIn 0.3s;
+    }
+    
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .modal-content {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--border-color);
+    }
+    
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--text-primary);
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    
+    .close-btn:hover {
+      background: var(--border-color);
+      color: var(--text-primary);
+    }
+    
+    .player-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+      background: var(--bg-color);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+    
+    .hole-by-hole {
+      margin-top: 1.5rem;
+    }
+    
+    .hole-by-hole h3 {
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      font-size: 1.125rem;
+    }
+    
+    .hole-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 0.5rem;
+    }
+    
+    .hole-card {
+      background: var(--bg-color);
+      padding: 0.75rem;
+      border-radius: 6px;
+      text-align: center;
+      border: 2px solid transparent;
+    }
+    
+    .hole-card.verified {
+      border-color: var(--primary-color);
+    }
+    
+    .hole-number {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.25rem;
+    }
+    
+    .hole-score {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: var(--text-primary);
+    }
+    
+    .hole-points {
+      font-size: 0.75rem;
+      color: var(--primary-color);
+      margin-top: 0.25rem;
+    }
+    
+    @media (max-width: 640px) {
+      .leaderboard-item { 
+        flex-direction: column; 
+        text-align: center; 
+      }
+      .leaderboard-rank { 
+        margin-bottom: 0.5rem; 
+      }
+      .leaderboard-info { 
+        padding: 0.5rem 0; 
+      }
+      .leaderboard-score { 
+        margin-top: 0.5rem; 
+      }
+      .controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .control-group {
+        justify-content: center;
+      }
+      .player-stats {
+        grid-template-columns: 1fr;
+      }
+      .hole-grid {
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="leaderboard-container">
+    <div class="header">
+      <div class="header-logo">
+        <img src="https://raw.githubusercontent.com/tkdbrad03/fpg-scorekeeper/main/fpg-logo.png" alt="FPG Logo" />
+      </div>
+      <h1>Live Tournament Leaderboard</h1>
+      <p class="tagline">Good Golf • Good Friends • Good Times</p>
+    </div>
+
+    <div class="controls-bar">
+      <div class="control-group">
+        <button class="btn btn-primary" id="refresh-btn" onclick="manualRefresh()">
+          🔄 Refresh
+        </button>
+        <select id="group-filter" onchange="applyFilters()">
+          <option value="all">All Groups</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="dark-mode-toggle" style="font-size: 0.875rem; color: var(--text-secondary);">🌙</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="refresh-bar">
+      🔄 <span id="last-update">Loading...</span> • Auto-refreshes every 30 seconds
+    </div>
+
+    <div class="content" id="leaderboard-content">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <div>Loading live scores...</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Powered by Florida Players Group • <span id="round-date"></span>
+    </div>
+  </div>
+
+  <!-- Player Detail Modal -->
+  <div id="player-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-player-name">Player Details</h2>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="player-stats" id="player-stats"></div>
+      <div class="hole-by-hole">
+        <h3>Hole by Hole</h3>
+        <div class="hole-grid" id="hole-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const GOOGLE_SHEET_ID = '152dK2m3gluxCdBal9GGLs43aDKFBvy5BiHdnKL3gV4o';
+    const SHEET_NAME = 'Live Scores';
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
+    const ROUND_DATE = new Date().toISOString().split('T')[0];
+
+    let allPlayers = [];
+    let allScores = [];
+    let refreshInterval;
+
+    // Dark mode
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+    }
+
+    // Load dark mode preference
+    if (localStorage.getItem('darkMode') === 'true') {
+      document.body.classList.add('dark-mode');
+      document.getElementById('dark-mode-toggle').checked = true;
+    }
+
+    async function loadLeaderboard() {
+      try {
+        const response = await fetch(SHEET_URL);
+        const text = await response.text();
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        const rows = json.table.rows;
+        
+        if (!rows || rows.length === 0) return showEmptyState();
+
+        allScores = [];
+        const playerData = {};
+        const groups = new Set();
+
+        rows.forEach(row => {
+          const c = row.c;
+          if (!c || !c[3] || !c[3].v) return;
+          
+          const roundDate = c[1]?.v || '';
+          const player = c[3]?.v || '';
+          
+          if (roundDate !== ROUND_DATE) return;
+
+          const group = c[2]?.v || '';
+          const hole = c[4]?.v || 0;
+          const score = c[5]?.v || 0;
+          const stableford = c[6]?.v || 0;
+          const verified = c[8]?.v || 'Pending';
+          const scorekeeper = c[7]?.v || '';
+
+          groups.add(group);
+          
+          // Store individual scores for detail view
+          allScores.push({
+            player,
+            group,
+            hole,
+            score,
+            stableford,
+            verified,
+            scorekeeper
+          });
+
+          if (!playerData[player]) {
+            playerData[player] = { 
+              name: player, 
+              group, 
+              totalStableford: 0, 
+              totalStrokes: 0, 
+              holesPlayed: new Set(), 
+              verifiedHoles: 0,
+              holeScores: []
+            };
+          }
+          
+          const key = `${hole}-${scorekeeper}`;
+          if (!playerData[player].holesPlayed.has(key)) {
+            playerData[player].totalStableford += stableford;
+            playerData[player].totalStrokes += score;
+            playerData[player].holesPlayed.add(key);
+            playerData[player].holeScores.push({ hole, score, stableford, verified });
+            if (verified === 'Yes') playerData[player].verifiedHoles++;
+          }
+        });
+
+        allPlayers = Object.values(playerData).map(p => ({
+          ...p,
+          holesPlayedCount: Math.floor(p.holesPlayed.size / 2)
+        }));
+
+        allPlayers.sort((a, b) => b.totalStableford - a.totalStableford || a.totalStrokes - b.totalStrokes);
+        
+        // Update group filter
+        updateGroupFilter(groups);
+        
+        applyFilters();
+        updateTimestamp();
+      } catch (err) {
+        console.error(err);
+        showError();
+      }
+    }
+
+    function updateGroupFilter(groups) {
+      const filter = document.getElementById('group-filter');
+      const currentValue = filter.value;
+      filter.innerHTML = '<option value="all">All Groups</option>';
+      
+      [...groups].sort().forEach(group => {
+        const option = document.createElement('option');
+        option.value = group;
+        option.textContent = `Group ${group}`;
+        filter.appendChild(option);
+      });
+      
+      filter.value = currentValue;
+    }
+
+    function applyFilters() {
+      const groupFilter = document.getElementById('group-filter').value;
+      
+      let filteredPlayers = allPlayers;
+      
+      if (groupFilter !== 'all') {
+        filteredPlayers = allPlayers.filter(p => p.group === groupFilter);
+      }
+      
+      renderLeaderboard(filteredPlayers);
+    }
+
+    function renderLeaderboard(players) {
+      const content = document.getElementById('leaderboard-content');
+      
+      if (players.length === 0) return showEmptyState();
+      
+      let html = '';
+      players.forEach((p, i) => {
+        const rank = i + 1;
+        const rankClass = rank === 1 ? 'first' : rank === 2 ? 'second' : rank === 3 ? 'third' : '';
+        html += `
+          <div class="leaderboard-item ${rankClass}" onclick="showPlayerDetails('${p.name}')">
+            <div class="leaderboard-rank ${rankClass}">${rank}</div>
+            <div class="leaderboard-info">
+              <div class="leaderboard-name">${p.name}</div>
+              <div class="leaderboard-details">
+                <span class="detail-badge">Group ${p.group}</span>
+                <span class="detail-badge">Through ${p.holesPlayedCount} holes</span>
+                <span class="detail-badge verified">✓ ${p.verifiedHoles} verified</span>
+              </div>
+            </div>
+            <div class="leaderboard-score">
+              <div class="leaderboard-points">${p.totalStableford}</div>
+              <div class="leaderboard-strokes">${p.totalStrokes} strokes</div>
+            </div>
+          </div>`;
+      });
+      
+      content.innerHTML = html;
+    }
+
+    function showPlayerDetails(playerName) {
+      const player = allPlayers.find(p => p.name === playerName);
+      if (!player) return;
+
+      document.getElementById('modal-player-name').textContent = player.name;
+      
+      // Stats
+      const avgStableford = player.holesPlayedCount > 0 
+        ? (player.totalStableford / player.holesPlayedCount).toFixed(1) 
+        : '0.0';
+      const avgScore = player.holesPlayedCount > 0 
+        ? (player.totalStrokes / player.holesPlayedCount).toFixed(1) 
+        : '0.0';
+      
+      document.getElementById('player-stats').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-label">Total Points</div>
+          <div class="stat-value">${player.totalStableford}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Strokes</div>
+          <div class="stat-value">${player.totalStrokes}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Holes Played</div>
+          <div class="stat-value">${player.holesPlayedCount}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Verified</div>
+          <div class="stat-value">${player.verifiedHoles}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Points/Hole</div>
+          <div class="stat-value">${avgStableford}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Score/Hole</div>
+          <div class="stat-value">${avgScore}</div>
+        </div>
+      `;
+      
+      // Hole by hole
+      const holeScores = player.holeScores.sort((a, b) => a.hole - b.hole);
+      let holeHTML = '';
+      holeScores.forEach(hs => {
+        holeHTML += `
+          <div class="hole-card ${hs.verified === 'Yes' ? 'verified' : ''}">
+            <div class="hole-number">Hole ${hs.hole}</div>
+            <div class="hole-score">${hs.score}</div>
+            <div class="hole-points">${hs.stableford} pts</div>
+          </div>
+        `;
+      });
+      
+      document.getElementById('hole-grid').innerHTML = holeHTML;
+      document.getElementById('player-modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('player-modal').classList.remove('active');
+    }
+
+    // Close modal on outside click
+    document.getElementById('player-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    function showEmptyState() {
+      document.getElementById('leaderboard-content').innerHTML = `
+        <div class="empty-state">
+          <div style="font-size:4rem;">⛳</div>
+          <div style="font-weight:bold;font-size:1.25rem;margin-bottom:0.5rem;">No scores yet</div>
+          <div>Scorekeepers will submit scores as we play.<br>The leaderboard will update automatically.</div>
+        </div>`;
+    }
+
+    function showError() {
+      document.getElementById('leaderboard-content').innerHTML = `
+        <div class="empty-state">
+          <div style="font-size:4rem;">⚠️</div>
+          <div style="font-weight:bold;font-size:1.25rem;margin-bottom:0.5rem;color:#856404;">Unable to load scores</div>
+          <div>Make sure your Google Sheet is <strong>published to the web</strong> under File → Share → Publish to Web.<br>This page will retry automatically.</div>
+        </div>`;
+    }
+
+    function updateTimestamp() {
+      const now = new Date();
+      document.getElementById('last-update').textContent = `Updated at ${now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true})}`;
+    }
+
+    function manualRefresh() {
+      const btn = document.getElementById('refresh-btn');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Refreshing...';
+      
+      loadLeaderboard().finally(() => {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = '🔄 Refresh';
+        }, 1000);
+      });
+    }
+
+    // Initialize
+    document.getElementById('round-date').textContent = new Date().toLocaleDateString('en-US', {
+      weekday:'long',
+      year:'numeric',
+      month:'long',
+      day:'numeric'
+    });
+    
+    loadLeaderboard();
+    refreshInterval = setInterval(loadLeaderboard, 30000);
+  </script>
+</body>
+</html>
