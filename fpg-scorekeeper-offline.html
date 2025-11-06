@@ -550,11 +550,12 @@
       courseHoles = selectedCourse.course_holes || [];
       updateHoleHeader();
 
+      // FIXED: Use actual handicap and quota from published data
       players = group.players.map(p => ({
         name: p.name || p,
-        handicap: 10, // Would come from quota sheet
-        quota: 30,
-        strokesGiven: 10,
+        handicap: p.handicap || 0,
+        quota: p.quota || 0,
+        strokesGiven: Math.floor(p.handicap || 0),
         pointsTotal: 0
       }));
 
@@ -634,6 +635,7 @@
               </div>
               <div class="subline">
                 <span>HCP: ${p.handicap ?? '—'}</span>
+                <span>Quota: ${p.quota ?? '—'}</span>
                 <span>Pts: ${p.pointsTotal}</span>
               </div>
             </div>
@@ -762,7 +764,7 @@
       text += `Group: ${groupNumber}\n\n`;
       
       players.forEach(p => {
-        text += `${p.name} (HCP ${p.handicap})\n`;
+        text += `${p.name} (HCP ${p.handicap}, Quota ${p.quota})\n`;
         for (let h = 1; h <= 18; h++) {
           const entry = scores[p.name]?.[h];
           if (entry) {
@@ -780,13 +782,13 @@
     }
 
     function downloadCSV() {
-      let csv = "Round Date,Group,Player,Hole,Score,Stableford Points,Stroke Applied\n";
+      let csv = "Round Date,Group,Player,Handicap,Quota,Hole,Score,Stableford Points,Stroke Applied\n";
       
       players.forEach(p => {
         for (let h = 1; h <= 18; h++) {
           const entry = scores[p.name]?.[h];
           if (entry) {
-            csv += `${roundDate},${groupNumber},${p.name},${h},${entry.gross},${entry.pts},${entry.strokeApplied ? 'Yes' : 'No'}\n`;
+            csv += `${roundDate},${groupNumber},${p.name},${p.handicap},${p.quota},${h},${entry.gross},${entry.pts},${entry.strokeApplied ? 'Yes' : 'No'}\n`;
           }
         }
       });
